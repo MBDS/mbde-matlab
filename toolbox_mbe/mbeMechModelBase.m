@@ -2,6 +2,23 @@ classdef (Abstract) mbeMechModelBase
     % Virtual base for generic, multibody models. 
     % A derived class represents a physical mechanism and a set of sensors.
         
+	% -----------------------------------------------------------------------------
+	% This file is part of MBDE-MATLAB.  See: https://github.com/MBDS/mbde-matlab
+	% 
+	%     MBDE-MATLAB is free software: you can redistribute it and/or modify
+	%     it under the terms of the GNU General Public License as published by
+	%     the Free Software Foundation, either version 3 of the License, or
+	%     (at your option) any later version.
+	% 
+	%     MBDE-MATLAB is distributed in the hope that it will be useful,
+	%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+	%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	%     GNU General Public License for more details.
+	% 
+	%     You should have received a copy of the GNU General Public License
+	%     along with MBDE-MATLAB.  If not, see <http://www.gnu.org/licenses/>.
+	% -----------------------------------------------------------------------------
+
     % Read-only, constant properties of the model
     properties(Abstract,Constant,GetAccess=public)
         % Dependent coordinates (q) count

@@ -1,6 +1,23 @@
 classdef mbeEstimatorDEKFprojections < mbeEstimatorFilterBase
     % Discrete Iterated Extended Kalman filter (EKF) with "perfect measurements", forward Euler Integrator
     
+	% -----------------------------------------------------------------------------
+	% This file is part of MBDE-MATLAB.  See: https://github.com/MBDS/mbde-matlab
+	% 
+	%     MBDE-MATLAB is free software: you can redistribute it and/or modify
+	%     it under the terms of the GNU General Public License as published by
+	%     the Free Software Foundation, either version 3 of the License, or
+	%     (at your option) any later version.
+	% 
+	%     MBDE-MATLAB is distributed in the hope that it will be useful,
+	%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+	%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	%     GNU General Public License for more details.
+	% 
+	%     You should have received a copy of the GNU General Public License
+	%     along with MBDE-MATLAB.  If not, see <http://www.gnu.org/licenses/>.
+	% -----------------------------------------------------------------------------
+
     properties
         % (Is this worth the computational cost? Probably not, but this is how EKF works in theory) 
         % Reflect the new X_less into q,qp,qpp for accurately simulate the
