@@ -8,7 +8,7 @@ Toolbox features
 	* [`mbeDynFormulationBase`](toolbox_mbe/mbeDynFormulationBase.m): Abstract base of all dynamics formulations.
   * Mechanical systems can be easily defined by users by inheriting from the abstract base `mbeMechModelBase`. Predefined mechanisms: 
     * `mbeMechModelFourBars1`: 4 bars linkage
-    * `mbeMechModelFiveBars1`: 4 bars linkage
+    * `mbeMechModelFiveBars1`: 5 bars linkage
   * Any number of sensors can be dynamically attached to any mechanism. See base abstract class `mbeSensorBase`
   * Several implemented state observers (base class `mbeEstimatorBase`).
 
