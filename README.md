@@ -4,8 +4,8 @@ Toolbox features
 ------------------
   * Entirely based on MATLAB classes.
   * A generic framework for kinematics and dynamics simulation of rigid multibody models of mechanisms.
-    * `mbeKinematicsSolver`: Solve kinematic problems (position, velocity, acceleration).
-	* `mbeDynFormulationBase`: Abstract base of all dynamics formulations.
+    * [`mbeKinematicsSolver`](toolbox_mbe/mbeKinematicsSolver.m): Solve kinematic problems (position, velocity, acceleration).
+	* [`mbeDynFormulationBase`](toolbox_mbe/mbeDynFormulationBase.m): Abstract base of all dynamics formulations.
   * Mechanical systems can be easily defined by users by inheriting from the abstract base `mbeMechModelBase`. Predefined mechanisms: 
     * `mbeMechModelFourBars1`: 4 bars linkage
     * `mbeMechModelFiveBars1`: 4 bars linkage
@@ -27,6 +27,6 @@ Just add the directory `toolbox_mbe` to your MATLAB `PATH`, e.g. from the menu "
 
 Demos
 ----------
-  * `demo_dynamic_simulation.m`: Runs a dynamic simulation for a given mechanism.
-  * `demo_run_observer_offline.m`: Run an offline estimation of a given mechanism, with a given set of sensors and using the especific estimation method. 
+  * [`demo_dynamic_simulation.m`](demo_dynamic_simulation.m): Runs a dynamic simulation for a given mechanism.
+  * [`demo_run_observer_offline.m`](demo_run_observer_offline.m): Run an offline estimation of a given mechanism, with a given set of sensors and using the especific estimation method. 
 
