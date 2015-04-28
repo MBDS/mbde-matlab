@@ -19,7 +19,7 @@ MBDE-MATLAB is licensed by University of Coruña and University of Almería unde
 Citation
 --------------
 This toolbox was introduced in: 
-  * J.L. Torres, J.L. Blanco, E. Sanjurjo, A. Gimenez-Fernandez, M.A. Naya, "A testbed for benchmarking state observers in Multibody Dynamics", ECCOMAS Thematic Conference on Multibody Dynamics, 2015.
+  * E. Sanjurjo, J.L. Blanco, J.L. Torres, M.A. Naya, "Testing the efficiency and accuracy of multibody-based state observers", ECCOMAS Thematic Conference on Multibody Dynamics, 2015. [[PDF](http://ingmec.ual.es/~jlblanco/papers/sanjurjo2015eccomas_mbs_observers.pdf)]
 
 Installation
 --------------
