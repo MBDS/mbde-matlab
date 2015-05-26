@@ -133,10 +133,10 @@ classdef (Abstract) mbeMechModelBase
             % by evaluating sensors_jacob() and applying the derivative
             % chain rule (below, all are partial derivatives):
             %
-            %  Note: h = h(q,qp,qpp)
+            %  Note: h = h(q,qp,qpp)  [See papers, or internal technical report "documentation_ekf" for details]
             %
             %  dh     dh    dq      dh    dqp     dh          dh                   dh
-            % ---- = ----  ----  + ----- ----- = ---- R(q) + ----- R_q * R * zp + ---- R_q * R * zpp 
+            % ---- = ----  ----  + ----- ----- = ---- R(q) + ----- R_q * R * zp + ---- (...)
             %  dz     dq    dz      dqp    dz     dq          dqp                 dqpp   
             %
             %  dh      dh      d qp      dh          dh         
@@ -144,7 +144,7 @@ classdef (Abstract) mbeMechModelBase
             %  dzp     dqp     dzp       dqp         dq
             %
             %  dh      dh     d qpp      dh                 
-            % ----- = -----  -------- = ----- * R + ...
+            % ----- = -----  -------- = ----- * R
             %  dzpp   dqpp     dzpp      dqpp    
             % 
             
@@ -157,11 +157,12 @@ classdef (Abstract) mbeMechModelBase
             for i = 1:length(iindex)
                 dh_dz(:,i) = dh_dq*R(:,i) + dh_dqp*Rq(:,:,i)*R(:,i)*qp(iindex(i)) +dh_dqpp * Rq(:,:,i)*R(:,i)*qpp(iindex(i));
             end
+			% TODO: Complete partial derivatives!
             
             % dh_dzp: TODO: Complete partial derivatives!
             dh_dzp = dh_dqp *  R;
             
-            % dh_dzpp: TODO: Complete partial derivatives!
+            % dh_dzpp:
             dh_dzpp = dh_dqpp *  R;       
         end
         % --- End of sensors API ----
