@@ -81,10 +81,7 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                 Rp(:,i) = R_q(:,:,i)*me.qp;  % \dot{R}
             end
             
-            % Eval observation Jacobian wrt the indep. coordinates:
-            [dh_dz , dh_dzp] = me.bad_mech_phys_model.sensors_jacob_indep(me.q,me.qp,me.qpp);
-            H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
-            
+                        
             M = me.bad_mech_phys_model.M;
             
             M_bar = R'*M*R;
@@ -101,6 +98,9 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
             
             Pp=FP+FP'+me.CovPlantNoise;
             if (~isempty(obs))  % Only reduce uncertainty if we actually have an observation
+                % Eval observation Jacobian wrt the indep. coordinates:
+                [dh_dz , dh_dzp] = me.bad_mech_phys_model.sensors_jacob_indep(me.q,me.qp,me.qpp);
+                H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
                 Pp = Pp - ((me.P*H')/(me.CovMeasurementNoise))*H*me.P;
             end            
             P_next = me.P+Pp*me.dt;
@@ -126,18 +126,23 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
             
             M_bar = R_next'*M*R_next;
             
-            Q = me.bad_mech_phys_model.eval_forces(me.q,me.qp);
+            Q = me.bad_mech_phys_model.eval_forces(q_next,qp_next);
             Q_bar = R_next'*(Q-M*Rpzp);
             
             Xp_next(ind_idxs2) = M_bar\Q_bar;
             
+            
+            
             % Virtual sensors
             if (~isempty(obs))
+                % Eval observation Jacobian wrt the indep. coordinates:
+                [dh_dz , dh_dzp] = me.bad_mech_phys_model.sensors_jacob_indep(q_next,qp_next,me.qpp);
+                H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
 				% Kalman gain
 				K = (P_next*H')/(me.CovMeasurementNoise);
 				
                 % measurement update:
-                obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp);
+                obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
                 
                 Innovation = (obs_predict-obs);
                 % Residual
@@ -152,8 +157,11 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                     %Rp = ace(q_next, R_next, l, x, 0); % Derivative of R_next with time 
                     Rp = R;
                     for i = 1:length(me.iidxs)
-                        Rp(:,i) = R_q(:,:,i)*me.qp;
+                        Rp(:,i) = R_q(:,:,i)*qp_next;
                     end
+                    % Eval observation Jacobian wrt the indep. coordinates:
+                    [dh_dz , dh_dzp] = me.bad_mech_phys_model.sensors_jacob_indep(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
+                    H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
 %                     Rp = R_q*me.qp;
                     eye_matrix = eye(length(me.iidxs));
                     g_q_1=[2/me.dt*eye_matrix, -1*eye_matrix;
@@ -174,6 +182,10 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                                         
                     M_bar = R_next'*M*R_next;
                     %Q = ...  (doesn't change)
+                    % Acceleration
+                    Rpzp = mbeKinematicsSolver.accel_problem( ...  %ace(q_next,qp_next, params,0);
+                        me.bad_mech_phys_model, ...
+                        q_next, qp_next, zeros(length(me.iidxs),1) );
                     Q_bar = R_next'*(Q-M*Rpzp);
                     qp_next = R_next*X_next(ind_idxs2);
                     %             zpp = M_bar\Q_bar;
@@ -182,7 +194,7 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                     
                     %y = virtual_sensor_eval (q_next,qp_next,params);
                     %Innovation = (y-y_sensor);
-                    obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp);
+                    obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
                     Innovation = (obs_predict-obs);                    
                     
                     g1 = Xp_next(ind_idxs1)-X_next(ind_idxs2)+K(ind_idxs1,:)*Innovation;
@@ -192,17 +204,18 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                 end
             end   % End if we have an observation             
 			
-			zpp = M_bar\Q_bar;
+% 			zpp = Xp_next(ind_idxs2);
+            zpp = M_bar\Q_bar;
             
             % Recover KF -> MBS coordinates
             % ------------------------------
             me.P = P_next;
             
             me.q   = mbeKinematicsSolver.pos_problem(me.bad_mech_phys_model, q_next);
-            me.qp  = mbeKinematicsSolver.vel_problem(me.bad_mech_phys_model, me.q, X_next(ind_idxs2) );
+            me.qp  = mbeKinematicsSolver.vel_problem(me.bad_mech_phys_model, q_next, X_next(ind_idxs2) );
             me.qpp = mbeKinematicsSolver.accel_problem( ...  %qpp_next = ace(q_next,qp_next, params, zpp);
                 me.bad_mech_phys_model, ...
-                me.q, me.qp, zpp ...
+                q_next, qp_next, zpp ...
                 );
             
         end % run_filter_iter
