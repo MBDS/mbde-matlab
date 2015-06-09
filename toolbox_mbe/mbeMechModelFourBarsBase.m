@@ -155,7 +155,9 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
             theta = q(5); 
             LA1 = me.bar_lengths(1);
             phiq = me.jacob_phi_q(q);
-            phiqd = phiq(:,1:4); % Jacobian dependent part
+            dep_coord_ind = 1:5;
+            dep_coord_ind(me.indep_idxs) = [];
+            phiqd = phiq(:,dep_coord_ind); % Jacobian dependent part
 
             Phi_qqR = [2*R(1), 2*R(2), 0, 0, 0;
                       2*R(1)-2*R(3), 2*(R(2)-R(4)), 2*(-R(1)+R(3)), 2*(-R(2)+R(4)), 0;
@@ -166,7 +168,8 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
                       ) ...
                       ];
             Rd_q = phiqd\(-Phi_qqR);
-            Rq = [Rd_q;[0,0,0,0,0]];            
+            Rq = zeros(5,5);
+            Rq(dep_coord_ind,:) = Rd_q;            
         end
         
 
