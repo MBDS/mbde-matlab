@@ -107,8 +107,11 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 me.q,...
                 me.bad_mech_phys_model.zp_init);
 
-            % ... accel to zero by default:
-            me.qpp = zeros(me.lenQ,1);
+            % ... initial acceleration (dynamics):
+            me.qpp =  me.mechanism_type.dynamic_formulation.solve_for_accelerations(...
+                me.bad_mech_phys_model,...
+                me.q,...
+                me.qp,0);
             
             % Initial covariance: done in each filter's init_filter()
 
