@@ -42,7 +42,7 @@ classdef mbeMechTypeSimulated < mbeMechTypeBase
             
             % 1) Do we need to re-generate datasets?
             simul_params = struct();
-            simul_params.mod=estim.mech_phys_model;
+            simul_params.mod=copy(estim.mech_phys_model);
             simul_params.mod.installed_sensors = []; % Remove sensors from the list of fields to compare (changes there do not affect to GT)
             simul_params.end_time = estim.end_time;
             simul_params.dt = estim.dt;    

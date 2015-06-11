@@ -1,4 +1,4 @@
-classdef (Abstract) mbeMechModelBase
+classdef (Abstract) mbeMechModelBase < matlab.mixin.Copyable
     % Virtual base for generic, multibody models. 
     % A derived class represents a physical mechanism and a set of sensors.
         
@@ -24,8 +24,7 @@ classdef (Abstract) mbeMechModelBase
         % Dependent coordinates (q) count
         dep_coords_count;
         
-        % Vector with the indices of the independent coordinates $z \in q$
-        indep_idxs;
+        
     end
     properties(Abstract,Access=public)
         % List of installed sensors (cell of objects derived from mbeSensorBase)
@@ -34,6 +33,8 @@ classdef (Abstract) mbeMechModelBase
         % Coordinates of fixed points (must be made available for the usage
         % of sensors, etc.)
         fixed_points;
+        
+        
     end    
     % Read-only properties of the model
     properties(Abstract,GetAccess=public,SetAccess=protected)
@@ -41,7 +42,10 @@ classdef (Abstract) mbeMechModelBase
         q_init_aprox;
         
         % Initial velocity for independent coords
-        zp_init;        
+        zp_init; 
+        
+        % Vector with the indices of the independent coordinates $z \in q$
+        indep_idxs;
     end
     
     % Virtual methods to be implemented in all derived classes:
@@ -61,6 +65,9 @@ classdef (Abstract) mbeMechModelBase
         % Evaluates the stiffness & damping matrices of the system:
         [K, C] = eval_KC(me,q,dq);
         
+        % Selection of DOFS
+        set_indep_idxs(me,q);
+                
         % Returns a *copy* of "me" after applying the given model errors (of class mbeModelErrorDef)
         [bad_model] = applyErrors(me, error_def); 
         % Plot a simplified version of the mechanism in the current axis.
@@ -87,6 +94,14 @@ classdef (Abstract) mbeMechModelBase
             idxs = 1:me.dep_coords_count; % [1,...,n]
             idxs(me.indep_idxs)=[]; % Remove those ones
         end
+        
+%         function copyme = copy(me)  
+%             copyme = feval(class(me));
+%             p = properties(me);
+%             for i = 1:length(p)
+%                 copyme.(p{i}) = me.(p{i});
+%             end
+%         end
 
         % --- Start of sensors API ----
 

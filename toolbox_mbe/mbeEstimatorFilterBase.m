@@ -181,6 +181,8 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 % ----------------
                 % (2/2) Run filter:
                 % ----------------
+                me.bad_mech_phys_model.set_indep_idxs(me.q)
+                me.iidxs = me.bad_mech_phys_model.get_indep_indxs();
                 me.run_filter_iter(obs);
                 
                 % Sanity check:

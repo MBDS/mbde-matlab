@@ -39,8 +39,7 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         % Dependent coordinates count
         dep_coords_count = 5;
         
-        % A vector with the indices of the independent coordinates in "q":
-        indep_idxs = 5;
+        
     end
     % (Abstract) Read-only properties of the model
     properties(GetAccess=public,SetAccess=protected)
@@ -49,6 +48,8 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         
         % Initial velocity for independent coords
         zp_init=[0];
+        % A vector with the indices of the independent coordinates in "q":
+        indep_idxs = 5;
     end
     
     % Model-specific properties:
@@ -172,6 +173,14 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
             Rq(dep_coord_ind,:) = Rd_q;            
         end
         
+        function set_indep_idxs(me,q)
+            if abs(sin(q(5))) > 0.7
+                me.indep_idxs = 1;
+            else
+                me.indep_idxs = 2;
+            end
+        end
+        
 
         % Evaluates the instantaneous forces
         function Q = eval_forces(me,q,qp)
@@ -190,7 +199,7 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         % Returns a copy of "me" after applying the given model errors (of
         % class mbeModelErrorDef)
         function [bad_model] = applyErrors(me, error_def)
-            bad_model = me; 
+            bad_model = copy(me); 
              
             % Init with no error:
             ini_vel_error = 0;

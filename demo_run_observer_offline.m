@@ -24,7 +24,7 @@ addpath('toolbox_mbe');
 
 % 1) Select the estimator: 
 % ---------------------------------
- estim = mbeEstimatorDEKF();
+estim = mbeEstimatorDEKF();
 % estim = mbeEstimatorIncrManifold(); 
 % estim = mbeEstimatorDIEKFacc();
 % estim = mbeEstimatorUKF();
@@ -40,9 +40,15 @@ addpath('toolbox_mbe');
 % ---------------------------------
 if (1) 
     % Simulate mechanism:
-    %estim.mech_phys_model = mbeMechModelFourBars1();
-    estim.mech_phys_model = mbeMechModelFiveBars1();
-    %estim.mech_phys_model = mbeMechModelPendulum1();
+    estim.mech_phys_model = mbeMechModelFourBars1();
+%     estim.mech_phys_model = mbeMechModelFiveBars1();
+%     estim.mech_phys_model = mbeMechModelPendulum1();
+
+estim.bad_model_errors.error_type = 2;
+
+estim.mech_phys_model.installed_sensors = {mbeSensorGyroscope([1 0],[1 2],[1 2], deg2rad(1))}; % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%  estim.mech_phys_model.installed_sensors = {mbeSensorGyroscope([0 0],[1 2],[3 4], deg2rad(1))}; % Gyro in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)    
+% estim.mech_phys_model.installed_sensors = {mbeSensorGyroscope([0 1],[3 4],[3 4], deg2rad(1))}; % Gyro in third link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)    
 
     % Estimator further params:
     estim.dt       = 5e-3;
