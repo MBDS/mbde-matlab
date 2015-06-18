@@ -42,6 +42,9 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
         % Frequency in FPS (of filter time) (0=disable)
         debug_show_live_filter_anim_fps = 10;
         
+        % Video
+        video_filename = '';
+        
         % Formulation for evaluating accelerations after each time step:
         post_iter_accel_solver = mbeDynFormulationMatrixR();
         
@@ -132,7 +135,21 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
             liveanim_last = 0;
             if (me.debug_show_live_filter_anim_fps>0)
                 liveanim_fig = figure();
+                set(liveanim_fig,'Position',get( 0, 'ScreenSize' ));
                 liveanim_incr = (1.0/me.debug_show_live_filter_anim_fps)/me.dt;
+                % Video settings
+                if isempty(me.video_filename)
+                    temp_name = class(me);
+                    me.video_filename = [temp_name(13:end),'_'];
+                    temp_name = class(me.mech_phys_model);
+                    me.video_filename = [me.video_filename, temp_name(13:end),'_'];
+                    temp_name = class(me.bad_mech_phys_model.installed_sensors{1});
+                    me.video_filename = [me.video_filename, temp_name(10:end)];
+                    clear('temp_name');
+                end
+                videowriter = VideoWriter(me.video_filename,'MPEG-4');
+                videowriter.FrameRate = me.debug_show_live_filter_anim_fps;
+                open(videowriter);
             else
                 liveanim_incr = Inf; % Disabled
             end
@@ -202,6 +219,8 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                     % Title:
                     title('r=GT; g:=BadModel; b=Estim');
                     drawnow;
+%                     frame = getframe;
+                    writeVideo(videowriter,getframe);
                     liveanim_last=i;
                 end
 
@@ -216,7 +235,8 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 end
                 
             end % =====  end of for each time step ===== 
-
+            % close video logging
+            close(videowriter);
             % Plots, stats...
             perfStats = struct();
             if (me.do_benchmark)
