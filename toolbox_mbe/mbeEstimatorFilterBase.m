@@ -136,6 +136,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
             if (me.debug_show_live_filter_anim_fps>0)
                 liveanim_fig = figure();
                 set(liveanim_fig,'Position',get( 0, 'ScreenSize' ));
+                pause(0.001);
                 liveanim_incr = (1.0/me.debug_show_live_filter_anim_fps)/me.dt;
                 % Video settings
                 if isempty(me.video_filename)
