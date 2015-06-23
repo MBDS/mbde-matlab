@@ -272,33 +272,28 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
             ini_pos_error = 0;
             grav_error = 0;
             damping_coef_error = 0;
-
-            switch error_def.error_type
-                case 0
-                    ini_vel_error = 0;
-                    ini_pos_error = 0;
-                    grav_error = 0;
-                    damping_coef_error = 0;
-                % 1: Gravity:
-                case 1
-                    grav_error = 1*error_def.error_scale;
-                % 2: Initial pos error
-                case 2
-                    ini_pos_error = error_def.error_scale * pi/16;
-                % 3: Initial vel error
-                case 3
-                    ini_vel_error = 10 * error_def.error_scale;
-                % 4: damping (C) param (=0)
-                case 4 
-                    damping_coef_error = -1*me.C * error_def.error_scale;
-                % 5: damping (C) param (=10)
-                case 5
-                    ini_vel_error = 0;
-                    ini_pos_error = 0;
-                    grav_error = 0;
-                    damping_coef_error = 10 * error_def.error_scale;
-                otherwise
-                    error('Unhandled value!');
+            for i = 1: length(error_def.error_type)
+                switch error_def.error_type(i)
+                    % 0: No errors:
+                    case 0
+                    % 1: Gravity:
+                    case 1
+                        grav_error = 1*error_def.error_scale;
+                    % 2: Initial pos error
+                    case 2
+                        ini_pos_error = error_def.error_scale * pi/16;
+                    % 3: Initial vel error
+                    case 3
+                        ini_vel_error = 10 * error_def.error_scale;
+                    % 4: damping (C) param (=0)
+                    case 4 
+                        damping_coef_error = -1*me.C * error_def.error_scale;
+                    % 5: damping (C) param (=10)
+                    case 5
+                        damping_coef_error = 10 * error_def.error_scale;
+                    otherwise
+                        error('Unhandled value!');
+                end
             end
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error
