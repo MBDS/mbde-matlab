@@ -240,7 +240,8 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         % See docs in base class
         function [] = plot_model_skeleton(me, q, color_code, do_fit)
             plot([me.fixed_points(1),q(1),q(3),me.fixed_points(3)], ...
-                 [me.fixed_points(2),q(2),q(4),me.fixed_points(4)] ,color_code);
+                 [me.fixed_points(2),q(2),q(4),me.fixed_points(4)] ,color_code,...
+                 'LineWidth',2);
             if (do_fit)
                 axis equal;
                 xlim ([me.fixed_points(1)-1.2*me.bar_lengths(1),1.1*me.fixed_points(3)]);
