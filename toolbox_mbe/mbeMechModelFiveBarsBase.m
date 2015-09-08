@@ -297,7 +297,7 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
             end
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error
-            bad_model.q_init_aprox(5)=bad_model.q_init_aprox(5)+ini_pos_error; %initial position error
+            bad_model.q_init_aprox(7:8)=bad_model.q_init_aprox(7:8)+ini_pos_error; %initial position error
             if (isprop(bad_model,'C'))
                 bad_model.C=bad_model.C+damping_coef_error; %initial position error
             end
@@ -311,7 +311,8 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
         % See docs in base class
         function [] = plot_model_skeleton(me, q, color_code, do_fit)
             plot([me.fixed_points(1),q(1),q(3),q(5),me.fixed_points(3)],...
-                 [me.fixed_points(2),q(2),q(4),q(6),me.fixed_points(4)],color_code);
+                 [me.fixed_points(2),q(2),q(4),q(6),me.fixed_points(4)],color_code, ...
+                 'LineWidth',2);
             if (do_fit)
                 axis equal;
                 xlim ([me.fixed_points(1)-1.2*me.bar_lengths(1),1.5*me.fixed_points(3)]);
