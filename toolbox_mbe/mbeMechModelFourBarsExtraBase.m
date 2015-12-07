@@ -7,10 +7,10 @@ classdef mbeMechModelFourBarsExtraBase < mbeMechModelBase
     % at the left-hand side fixed end.
     %
     %             2:(q3,q4)
-    %               +---------o    - q6: Angle (xb,yb)-(q3,q4)
-    %               |       (xb,yb)
-    %               |
-    %               |
+    %              /+---------o    - q8: Angle (xb,yb)-(q3,q4)
+    %  3:(q6,q7) /  |       (xb,yb)
+    %            \  |
+    %             \ |
     %     o---------+ 1:(q1,q2)
     %    (xa,ya)
     %
@@ -42,7 +42,7 @@ classdef mbeMechModelFourBarsExtraBase < mbeMechModelBase
         
         % A vector with the indices of the independent coordinates in "q":
         indep_idxs = 5; % dof->theta
-        %indep_idxs = 8; % dof->beta
+        % indep_idxs = 8; % dof->beta
     end
     % (Abstract) Read-only properties of the model
     properties(GetAccess=public,SetAccess=protected)
