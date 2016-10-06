@@ -51,7 +51,7 @@ classdef mbeMechModelRodArray1dof < mbeMechModelBase
     % (Abstract) Read-only properties of the model
     properties(GetAccess=public,SetAccess=public)
         % Initial, approximate position (dep coords) vector
-        q_init_aprox=zeros(mbeMechModelRodArray1dof.dep_coords_count,1);
+        q_init_approx=zeros(mbeMechModelRodArray1dof.dep_coords_count,1);
         
         
         % Initial velocity for independent coords
@@ -93,7 +93,7 @@ classdef mbeMechModelRodArray1dof < mbeMechModelBase
             ct = cos(theta); st=sin(theta);
             
             % Initial approximated position
-            me.q_init_aprox = [...
+            me.q_init_approx = [...
                 me.L*ct        , me.L*st, ...
                 me.D+me.L*ct   , me.L*st, ...
                 2*me.D+me.L*ct , me.L*st ...                
@@ -258,7 +258,7 @@ classdef mbeMechModelRodArray1dof < mbeMechModelBase
             end
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error
-            bad_model.q_init_aprox(5)=bad_model.q_init_aprox(5)+ini_pos_error; %initial position error
+            bad_model.q_init_approx(5)=bad_model.q_init_approx(5)+ini_pos_error; %initial position error
             bad_model.C=bad_model.C+damping_coef_error; %initial position error
 
             % Weight vector 

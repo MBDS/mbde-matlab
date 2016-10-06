@@ -123,7 +123,7 @@ classdef mbeEstimatorBatchMRF < mbeEstimatorBase
             % ... pos:
             dyn_states.q(1,:) = mbeKinematicsSolver.pos_problem(...
                 me.bad_mech_phys_model, ...
-                me.bad_mech_phys_model.q_init_aprox);
+                me.bad_mech_phys_model.q_init_approx);
             
             % ... vel:
             dyn_states.qp(1,:) = mbeKinematicsSolver.vel_problem(...
@@ -373,7 +373,7 @@ classdef mbeEstimatorBatchMRF < mbeEstimatorBase
             end
             
             % r_inipos
-            initguess_z0 = me.bad_mech_phys_model.q_init_aprox(me.iidxs);
+            initguess_z0 = me.bad_mech_phys_model.q_init_approx(me.iidxs);
             r_inipos = me.x_z(1,:)' - initguess_z0;
 
             % Residuals: r

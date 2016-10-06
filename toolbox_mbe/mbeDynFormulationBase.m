@@ -74,7 +74,7 @@ classdef (Abstract) mbeDynFormulationBase < handle
             % See also: plot_perf_stats()
             
             % Initial conditions
-            q_approx = model.q_init_aprox;
+            q_approx = model.q_init_approx;
             assert(length(q_approx)==model.dep_coords_count);
             zp_init = model.zp_init; % Was: thetap = MBS.thetap; % Initial DOF velocity
             

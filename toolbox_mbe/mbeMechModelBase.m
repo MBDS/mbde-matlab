@@ -38,7 +38,7 @@ classdef (Abstract) mbeMechModelBase
     % Read-only properties of the model
     properties(Abstract,GetAccess=public,SetAccess=public)
         % Initial, approximate position (dep coords) vector
-        q_init_aprox;
+        q_init_approx;
         
         % Initial velocity for independent coords
         zp_init;        

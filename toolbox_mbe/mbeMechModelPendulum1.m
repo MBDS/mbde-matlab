@@ -33,7 +33,7 @@ classdef mbeMechModelPendulum1 < mbeMechModelPendulumBase
             % Initial conditions
             x1 = 2; y1= 0; 
             theta = 0; % Initial DOF value
-            me.q_init_aprox = [x1, y1, theta]'; % Initial approximated position
+            me.q_init_approx = [x1, y1, theta]'; % Initial approximated position
             me.zp_init = 0; % Initial DOF velocity
             % gravity
             me.g = -10;

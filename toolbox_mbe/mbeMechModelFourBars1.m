@@ -41,7 +41,7 @@ classdef mbeMechModelFourBars1 < mbeMechModelFourBarsBase
             % F E R R O L
             x1 = 0; y1= 2; x2 = 10; y2 = 5; %
             theta = pi/3; % Initial DOF value
-            me.q_init_aprox = [x1, y1, x2, y2, theta]'; % Initial approximated position
+            me.q_init_approx = [x1, y1, x2, y2, theta]'; % Initial approximated position
             me.zp_init = 0; % Initial DOF velocity
             % gravity
             me.g = -10;

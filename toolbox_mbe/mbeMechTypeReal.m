@@ -84,7 +84,7 @@ classdef mbeMechTypeReal < mbeMechTypeBase
                 estim.log_level(1,'[mbeMechTypeSimulated]  ---- Simulating GT model ---');
                 addpath('toolbox_mbe','datasets_originales');
                 matriz = cargar_outside(self.dataset,estim.end_time);
-                q_aprox = estim.mech_phys_model.q_init_aprox;
+                q_aprox = estim.mech_phys_model.q_init_approx;
                 % S e n s o r s
                 % Just for checking if the IMU axis reference are correct
                 migiroAcoplador = mbeSensorGyroscope(...

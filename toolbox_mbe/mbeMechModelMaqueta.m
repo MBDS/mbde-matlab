@@ -42,7 +42,7 @@ classdef mbeMechModelMaqueta < mbeMechModelFourBarsExtraBase
             x1 = .016267; y1= 0.118892; x2 = .489447; y2 = .347018; x3 = .296403; y3 = .381854; theta = deg2rad(82.209); beta = deg2rad(130.2993); % dof->beta                            
             
             
-            me.q_init_aprox = [x1, y1, x2, y2, theta, x3, y3, beta]'; % Initial approximated position
+            me.q_init_approx = [x1, y1, x2, y2, theta, x3, y3, beta]'; % Initial approximated position
             wA1k = 2700*(1/150)*2*pi/60; % 2700rpmMot * 1rpmA1/150rpmMOT * 2pirad/rev * 1m/60s ---> rad/s            
             %me.zp_init = -0.4309; % Initial DOF velocity
             me.zp_init = wA1k; % 

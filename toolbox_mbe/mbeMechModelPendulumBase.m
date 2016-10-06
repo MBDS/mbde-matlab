@@ -43,7 +43,7 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
     % (Abstract) Read-only properties of the model
     properties(GetAccess=public,SetAccess=public)
         % Initial, approximate position (dep coords) vector
-        q_init_aprox=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
+        q_init_approx=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
         
         % Initial velocity for independent coords
         zp_init=[0];
@@ -187,7 +187,7 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
             end
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error
-            bad_model.q_init_aprox(3)=bad_model.q_init_aprox(3)+ini_pos_error; %initial position error
+            bad_model.q_init_approx(3)=bad_model.q_init_approx(3)+ini_pos_error; %initial position error
             bad_model.C=bad_model.C+damping_coef_error; %initial position error
 
             % Weight vector 

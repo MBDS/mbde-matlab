@@ -38,7 +38,7 @@ classdef mbeMechModelFourBars3 < mbeMechModelFourBarsBase
         function [me] = mbeMechModelFourBars3()
             % M A Q U E T A SIMPLIFICADA (SOLO 5 COORD)
             x1 = .120; y1= 0; x2 = .540; y2 = .338; theta = 0;             
-            me.q_init_aprox = [x1, y1, x2, y2, theta]'; % Initial approximated position
+            me.q_init_approx = [x1, y1, x2, y2, theta]'; % Initial approximated position
             me.zp_init = 1; % Initial DOF velocity
             % gravity
             me.g = -9.80665;

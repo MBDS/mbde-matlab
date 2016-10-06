@@ -44,7 +44,7 @@ classdef mbeMechModelFiveBars1 < mbeMechModelFiveBarsBase
             x3 = 2.5; y3= 0;
             theta1 = 0; % Initial DOF value
             theta2 = pi; % Initial DOF value
-            me.q_init_aprox = [x1, y1, x2, y2, x3, y3, theta1, theta2]'; % Initial approximated position
+            me.q_init_approx = [x1, y1, x2, y2, x3, y3, theta1, theta2]'; % Initial approximated position
             me.zp_init = [0, 0]'; % Initial DOF velocity
             % gravity
             me.g = -10;
