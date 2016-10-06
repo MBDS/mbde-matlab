@@ -41,7 +41,7 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
         indep_idxs = 3;
     end
     % (Abstract) Read-only properties of the model
-    properties(GetAccess=public,SetAccess=protected)
+    properties(GetAccess=public,SetAccess=public)
         % Initial, approximate position (dep coords) vector
         q_init_aprox=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
         
