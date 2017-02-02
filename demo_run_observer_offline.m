@@ -41,7 +41,7 @@ estim = mbeEstimatorDEKF(); % DEKF
 
 % 2) Pick multibody model and set of sensors:
 % ---------------------------------
-if (1) % Normal behaviour is achieved with this condition set to 1. 
+if (1) % Normal behaviour is achieved with this condition set to 1. If this condition is chaged to 0, a file with experimental data must be provided
     sen_noise = deg2rad(1);
 % Four-bar linkage:
 %     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], sen_noise)}; % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
@@ -68,7 +68,7 @@ if (1) % Normal behaviour is achieved with this condition set to 1.
     estim.end_time = 10; % Simulation time
     % Set initial covariance matrix and plant covariance matrix (Some of
     % these values might have to be changed depending on the set of
-    % sensors, the mechanism, the modeling error, etc).
+    % sensors, the mechanism, the modeling error, the observer formulation, etc).
     estim.transitionNoise_Z = 0; 
     estim.transitionNoise_Zp = 0;
     if isa(estim.mech_phys_model,'mbeMechModelFourBars1')

@@ -55,36 +55,16 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
         % Init the filter (see docs in mbeEstimatorFilterBase)
         function [] = init_filter(me)
             % 1) q,qp,qpp: already set in base class.
-            % 2) Initial covariance: the covariances are propagated from
-            % the independent coordinates to the dependent coordinates
-            % using the R matrix %FIXME: this method is not suitable for
-            % the plant noise, because provides different values depending
-            % on the initial position
             me.lenq = length(me.q);
             Iz = eye(me.lenq);
             Oz = zeros(me.lenq);
             lenX = 2*me.lenq;
             O2z = zeros(lenX);
-%             PZ = diag(me.initVar_Z*ones(1,me.lenZ));
-%             PZp = diag(me.initVar_Zp*ones(1,me.lenZ));
-%             R = mbeKinematicsSolver.calc_R_matrix(me.mech_phys_model,me.q);
-%             Pq = R*PZ*R'; % me.PM_VAR*ones(size(me.q)); 
-%             Pqp = R*PZp*R';
-%             me.P = zeros(2*me.lenq);
-%             % Initial assembly of P. A small number is added to ensure the matrix is positive definite
-%             me.P(1:me.lenq,1:me.lenq) = Pq+1e-5; 
-%             me.P((me.lenq+1):2*me.lenq,(me.lenq+1):2*me.lenq) = Pqp+1e-5;
             
             me.P = diag(...
                 [me.initVar_Z*ones(1,me.lenq),...
                 me.initVar_Zp*ones(1,me.lenq)]);
-            % Covariance of plant noise in independent coordinates (the
-            % covariance of the plant with dependent coordinates will be
-            % calculated every time step in the main loop of the filter)
-%             me.CovPlantNoise = diag([...
-%                 ones(1,me.lenq)*me.transitionNoise_Z*me.dt, ...
-%                 ones(1,me.lenq)*me.transitionNoise_Zp*me.dt]);
-
+            
             ContinuousCovPlantNoise = diag([...
                 ones(1,me.lenq)*me.transitionNoise_Zp, ...
                 ones(1,me.lenq)*me.transitionNoise_Zpp]);
@@ -99,30 +79,17 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             
             % These should be constant for all iterations, so eval them once:
             me.F = [eye(me.lenq) eye(me.lenq)*me.dt;zeros(me.lenq) eye(me.lenq)];
-            %me.G = [zeros(me.lenq) ; eye(me.lenq)*me.dt];
             
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
-%             me.CovMeasurementNoise = diag(sensors_stds.^2);
+
             me.FULL_COV_SENSORS = diag([sensors_stds'.^2, me.PM_VAR*ones(1,2*(me.lenq-me.lenZ)) ]);
         end
         
         % Run one timestep of the estimator (see docs in mbeEstimatorFilterBase)
         function [] = run_filter_iter(me, obs)
 
-            % time update. The covariance of the noise of the plant is
-            % updated every time step
-%             R = mbeKinematicsSolver.calc_R_matrix(me.mech_phys_model,me.q);
-%             diagR = [R,zeros(size(R)); 
-%                 zeros(size(R)), R];
-%             CovPlantNoiseq = diagR*me.CovPlantNoise*diagR'+1e-4;
-%             P_less = me.F*(me.P)*me.F' + CovPlantNoiseq;
-            
-            % Simplified from:  
-            %    X_less = me.F*X + me.G*U;
-            %    % Kalman state:     
-            %    X = [me.q(me.iidxs) ; me.qp(me.iidxs)];
-            %    U = me.qpp(me.iidxs); % system input 
+            % time update. 
             P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
             % Transition model (Euler integration)
             X_minus=[...
@@ -130,7 +97,7 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                 me.qp + me.qpp*me.dt ];
 
            
-            incr_X_plus = 1;
+           
             err = 1; 
             IEKF_ITERS = 0;
             X_plus = X_minus;
