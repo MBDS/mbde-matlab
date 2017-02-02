@@ -117,15 +117,15 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
 %                 zeros(size(R)), R];
 %             CovPlantNoiseq = diagR*me.CovPlantNoise*diagR'+1e-4;
 %             P_less = me.F*(me.P)*me.F' + CovPlantNoiseq;
-            P_less = me.F*(me.P)*me.F' + me.CovPlantNoise;
             
             % Simplified from:  
             %    X_less = me.F*X + me.G*U;
             %    % Kalman state:     
             %    X = [me.q(me.iidxs) ; me.qp(me.iidxs)];
             %    U = me.qpp(me.iidxs); % system input 
+            P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
             % Transition model (Euler integration)
-            X_less=[...
+            X_minus=[...
                 me.q + me.dt*me.qp; ...
                 me.qp + me.qpp*me.dt ];
 
@@ -133,7 +133,7 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             incr_X_plus = 1;
             err = 1; 
             IEKF_ITERS = 0;
-            X_plus = X_less;
+            X_plus = X_minus;
 %             while (incr_X_plus>me.MAX_INCR_X && IEKF_ITERS < me.MAX_IEKF_ITERS)
             while (err>me.MAX_ERR && IEKF_ITERS < me.MAX_IEKF_ITERS)
                 IEKF_ITERS = IEKF_ITERS + 1;
@@ -174,12 +174,12 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                 end
                 err = norm([phi;phiq*me.qp]);
                 locInnovation = full_obs-obs_predict;
-                K_i = P_less*H'/(H*P_less*H'+COV_SENSORS);
-                X_plus_new = X_less+K_i*(locInnovation-H*(X_less-X_plus));
+                K_i = P_minus*H'/(H*P_minus*H'+COV_SENSORS);
+                X_plus_new = X_minus+K_i*(locInnovation-H*(X_minus-X_plus));
                 incr_X_plus = norm(X_plus-X_plus_new);
                 X_plus = X_plus_new;
             end
-            me.P = (eye(length(X_plus))-K_i*H)*P_less;
+            me.P = (eye(length(X_plus))-K_i*H)*P_minus;
 %             I_KH = (eye(length(X_plus))-K_i*H);
 %             me.P = I_KH*P_less*I_KH'+K_i*COV_SENSORS*K_i'; % Joseph Form
             if(norm(phi)>1e-3)

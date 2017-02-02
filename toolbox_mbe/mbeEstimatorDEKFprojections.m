@@ -100,7 +100,7 @@ classdef mbeEstimatorDEKFprojections < mbeEstimatorFilterBase
 %                 zeros(size(R)), R];
 %             CovPlantNoiseq = diagR*me.CovPlantNoise*diagR'+1e-4;
 %             P_less = me.F*(me.P)*me.F' + CovPlantNoiseq;
-            P_less = me.F*(me.P)*me.F' + me.CovPlantNoise;
+            P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
             
             % Simplified from:  
             %    X_less = me.F*X + me.G*U;
@@ -108,13 +108,13 @@ classdef mbeEstimatorDEKFprojections < mbeEstimatorFilterBase
             %    X = [me.q(me.iidxs) ; me.qp(me.iidxs)];
             %    U = me.qpp(me.iidxs); % system input 
             % Transition model (Euler integration)
-            X_less=[...
+            X_minus=[...
                 me.q + me.dt*me.qp; ...
                 me.qp + me.qpp*me.dt ];
 
            
-            me.q = X_less(1:me.lenq);
-            me.qp = X_less(me.lenq+(1:me.lenq));
+            me.q = X_minus(1:me.lenq);
+            me.qp = X_minus(me.lenq+(1:me.lenq));
             [me.qpp,~] = me.post_iter_accel_solver.solve_for_accelerations(...
                     me.bad_mech_phys_model,...
                     me.q, me.qp, ...
@@ -126,13 +126,13 @@ classdef mbeEstimatorDEKFprojections < mbeEstimatorFilterBase
 
                 obs_predict = me.bad_mech_phys_model.sensors_simulate(me.q,me.qp,me.qpp);
                 Innovation = obs-obs_predict;
-                K = P_less*H'/(H*P_less*H'+me.CovMeasurementNoise);
-                X_plus = X_less+K*Innovation;
-                me.P = (eye(length(X_plus))-K*H)*P_less;
+                K = P_minus*H'/(H*P_minus*H'+me.CovMeasurementNoise);
+                X_plus = X_minus+K*Innovation;
+                me.P = (eye(length(X_plus))-K*H)*P_minus;
 
             else
-                X_plus = X_less;
-                me.P = P_less;
+                X_plus = X_minus;
+                me.P = P_minus;
             end
             
             % Projections

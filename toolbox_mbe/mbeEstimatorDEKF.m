@@ -86,7 +86,7 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
         function [] = run_filter_iter(me, obs)
 
             % time update
-            P_less = me.F*(me.P)*me.F' + me.CovPlantNoise;
+            P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
             
             % Simplified from:  
             %    X_less = me.F*X + me.G*U;
@@ -94,7 +94,7 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
             %    X = [me.q(me.iidxs) ; me.qp(me.iidxs)];
             %    U = me.qpp(me.iidxs); % system input 
             % Transition model (Euler integration)
-            X_less=[...
+            X_minus=[...
                 me.q(me.iidxs) + me.dt*me.qp(me.iidxs); ...
                 me.qp(me.iidxs) + me.qpp(me.iidxs)*me.dt ];
 
@@ -102,9 +102,9 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
             % variable)
             if (~isempty(obs))
                 if (me.eval_sensors_at_X_less)
-                    me.q(me.iidxs) = X_less(1:me.lenZ);
+                    me.q(me.iidxs) = X_minus(1:me.lenZ);
                     me.q = mbeKinematicsSolver.pos_problem(me.bad_mech_phys_model, me.q);
-                    me.qp = mbeKinematicsSolver.vel_problem(me.bad_mech_phys_model, me.q, X_less( me.lenZ+(1:me.lenZ) ));                
+                    me.qp = mbeKinematicsSolver.vel_problem(me.bad_mech_phys_model, me.q, X_minus( me.lenZ+(1:me.lenZ) ));                
                     [me.qpp,~] = me.post_iter_accel_solver.solve_for_accelerations(...
                         me.bad_mech_phys_model,...
                         me.q, me.qp, ...
@@ -116,19 +116,19 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
                 H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
                 
                 % Kalman gain:
-                K = P_less*H'/(H*P_less*H'+me.CovMeasurementNoise);
+                K = P_minus*H'/(H*P_minus*H'+me.CovMeasurementNoise);
                
                 % measurement update:
                 obs_predict = me.bad_mech_phys_model.sensors_simulate(me.q,me.qp,me.qpp);
                 
                 me.Innovation = obs-obs_predict;
-                X_plus = X_less + K*me.Innovation;
+                X_plus = X_minus + K*me.Innovation;
                 %     P = (eye(2)-K*H)*P_less*(eye(2)-K*H)'+K*CovMeasurementNoise*K';
-                me.P = (eye(length(X_less))-K*H)*P_less;
+                me.P = (eye(length(X_minus))-K*H)*P_minus;
             else
                 % No sensor:
-                X_plus = X_less;
-                me.P = P_less;
+                X_plus = X_minus;
+                me.P = P_minus;
                 me.Innovation = [];
             end
             

@@ -104,10 +104,10 @@ classdef mbeEstimatorIncrManifold < mbeEstimatorFilterBase
 
             % 2) Kalman state propagation
             % the state is DOF position and velocity error
-            X_less=zeros(2*me.lenZ, 1);
+            X_minus=zeros(2*me.lenZ, 1);
             
             % time update
-            P_less = me.F*me.P*me.F' + me.CovPlantNoise;
+            P_minus = me.F*me.P*me.F' + me.CovPlantNoise;
             
             % If no sensor data available, P_less should be the output at P
             % variable)
@@ -117,18 +117,18 @@ classdef mbeEstimatorIncrManifold < mbeEstimatorFilterBase
                 H=[dh_dz, dh_dzp];
                 
                 % Kalman gain:
-                K = P_less*H'/(H*P_less*H'+me.CovMeasurementNoise);
+                K = P_minus*H'/(H*P_minus*H'+me.CovMeasurementNoise);
 
                 % measurement update:
                 obs_predict = me.bad_mech_phys_model.sensors_simulate(qMB,qpMB,qppMB);
                 
                 me.Innovation = obs-obs_predict;
-                X_plus = X_less + K*me.Innovation;
-                me.P = (eye(length(X_less))-K*H)*P_less;
+                X_plus = X_minus + K*me.Innovation;
+                me.P = (eye(length(X_minus))-K*H)*P_minus;
             else
                 % No sensor:
-                X_plus = X_less;
-                me.P = P_less;
+                X_plus = X_minus;
+                me.P = P_minus;
                 me.Innovation = [];
             end
 
