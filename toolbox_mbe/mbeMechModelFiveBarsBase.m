@@ -48,12 +48,12 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelFiveBarsBase.dep_coords_count,1);
         
-        % Initial velocity for independent coords
-        zp_init=[0, 0]';
     end
     
     % Model-specific properties:
     properties(Access=public)
+        % Initial velocity for independent coords
+        zp_init=[0, 0]';
         % Global mass matrix
         M;
         
@@ -291,6 +291,10 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
                     % 5: damping (C) param (=10)
                     case 5
                         damping_coef_error = 10 * error_def.error_scale;
+                    case 6
+                        bad_model.bar_lengths(1) = bad_model.bar_lengths(1)*(100+error_def.error_scale)/100; % Lenght error in bar 1 (error_scale are 1 % of lenght error)
+                    case 7 
+                        bad_model.mA1 = bad_model.mA1*(100+10*error_def.error_scale)/100;% Mass error in bar 1(error_scale usits are 10% of mass error)
                     otherwise
                         error('Unhandled value!');
                 end
@@ -306,6 +310,9 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
             % WARNING: This vector MUST be updated here, after modifying the "g"
             % vector!
             bad_model=bad_model.update_Qg();
+            % Update mass matrix (It only need to be updated if the mass error error has
+            % been applied)
+            bad_model = bad_model.update_M();
         end % applyErrors
         
         % See docs in base class

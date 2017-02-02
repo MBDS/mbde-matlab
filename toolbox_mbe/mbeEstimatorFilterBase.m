@@ -66,6 +66,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
         
         % Covariance matrix (we assume all filters have one, so it's here)
         P = [];                
+        Innovation = [];
     end
     
     % --- Handy vars set-up by methods in this base class for the convenience of derived classes ---
@@ -135,7 +136,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
             liveanim_last = 0;
             if (me.debug_show_live_filter_anim_fps>0)
                 liveanim_fig = figure();
-                set(liveanim_fig,'Position',get( 0, 'ScreenSize' ));
+%                 set(liveanim_fig,'Position',get( 0, 'ScreenSize' ));
                 pause(0.001);
                 liveanim_incr = (1.0/me.debug_show_live_filter_anim_fps)/me.dt;
                 % Video settings
@@ -148,7 +149,8 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                     me.video_filename = [me.video_filename, temp_name(10:end)];
                     clear('temp_name');
                 end
-                videowriter = VideoWriter(me.video_filename,'MPEG-4');
+%                 videowriter = VideoWriter(me.video_filename,'MPEG-4');
+                videowriter = VideoWriter(me.video_filename);
                 videowriter.FrameRate = me.debug_show_live_filter_anim_fps;
                 open(videowriter);
             else
@@ -168,6 +170,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 hist.P         = cell(nTimeSteps,1); % Cov history
                 [hist.Pidxs_z, hist.Pidxs_zp, hist.Pidxs_zpp ] = me.get_indices_in_P();
                 hist.sensor_data = cell(nTimeSteps,1); % cell: Variable number of readings in each timestep!
+                hist.estim_inn = cell(1,nTimeSteps);
             end
 
 
@@ -233,11 +236,14 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                     hist.estim_qpp(i,:) = me.qpp;
                     hist.P{i} = me.P;
                     hist.sensor_data{i} = obs;
+                    hist.estim_inn{i} = me.Innovation;
                 end
                 
             end % =====  end of for each time step ===== 
             % close video logging
-            close(videowriter);
+            if (me.debug_show_live_filter_anim_fps>0)
+                close(videowriter);
+            end
             % Plots, stats...
             perfStats = struct();
             if (me.do_benchmark)

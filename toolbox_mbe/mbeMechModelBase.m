@@ -26,6 +26,7 @@ classdef (Abstract) mbeMechModelBase
         
         % Vector with the indices of the independent coordinates $z \in q$
         indep_idxs;
+    
     end
     properties(Abstract,Access=public)
         % List of installed sensors (cell of objects derived from mbeSensorBase)
@@ -34,14 +35,16 @@ classdef (Abstract) mbeMechModelBase
         % Coordinates of fixed points (must be made available for the usage
         % of sensors, etc.)
         fixed_points;
+        
+        % Initial velocity for independent coords
+        zp_init;       
     end    
     % Read-only properties of the model
     properties(Abstract,GetAccess=public,SetAccess=public)
         % Initial, approximate position (dep coords) vector
         q_init_approx;
         
-        % Initial velocity for independent coords
-        zp_init;        
+        
     end
     
     % Virtual methods to be implemented in all derived classes:

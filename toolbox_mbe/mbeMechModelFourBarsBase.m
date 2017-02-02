@@ -47,12 +47,12 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
         
-        % Initial velocity for independent coords
-        zp_init=[0];
     end
     
     % Model-specific properties:
     properties(Access=public)
+        % Initial velocity for independent coords
+        zp_init=[0];
         % Global mass matrix
         M;
         
@@ -222,6 +222,10 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
 %                         ini_pos_error = 0;
 %                         grav_error = 0;
                         damping_coef_error = 10 * error_def.error_scale;
+                    case 6 
+                        bad_model.bar_lengths(1) = bad_model.bar_lengths(1)*(100+error_def.error_scale)/100; % Lenght error in bar 1 (error_scale are 1 % of lenght error)
+                    case 7 
+                        bad_model.mA1 = bad_model.mA1*(100+10*error_def.error_scale)/100;% Mass error in bar 1(error_scale usits are 10% of mass error)
                     otherwise
                         error('Unhandled value!');
                 end
@@ -229,12 +233,15 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error
             bad_model.q_init_approx(5)=bad_model.q_init_approx(5)+ini_pos_error; %initial position error
-            bad_model.C=bad_model.C+damping_coef_error; %initial position error
+            bad_model.C=bad_model.C+damping_coef_error; %damping coefficient error
 
             % Weight vector 
-            % WARNING: This vector MUST be updated here, after modifying the "g"
-            % vector!
+            % WARNING: This vector MUST be updated here, after modifying the mass and the "g"
+            % vector !
             bad_model=bad_model.update_Qg();
+            % Update mass matrix (It only need to be updated if the mass error error has
+            % been applied)
+            bad_model = bad_model.update_M();            
         end % applyErrors
         
         % See docs in base class

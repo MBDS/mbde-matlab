@@ -54,14 +54,29 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
         % Init the filter (see docs in mbeEstimatorFilterBase)
         function [] = init_filter(me)
             % 1) q,qp,qpp: already set in base class.
+            % These should be constant for all iterations, so eval them once:
+            
+            Iz = eye(me.lenZ);
+            Oz = zeros(me.lenZ);
+            lenX = 2*me.lenZ;
+            O2z = zeros(lenX);
+            
             % 2) Initial covariance: 
             me.P = diag([...
                 me.initVar_Z*ones(1,me.lenZ), ...
                 me.initVar_Zp*ones(1,me.lenZ)]);
             
-            me.CovPlantNoise = diag([...
-                ones(1,me.lenZ)*me.transitionNoise_Z*(me.dt), ...
-                ones(1,me.lenZ)*me.transitionNoise_Zp*(me.dt)]);
+            % Discrete covariance matrix of plant noise calculated from its continuous counterpart (Van Loan's method)
+            ContinuousCovPlantNoise = diag([...
+                ones(1,me.lenZ)*me.transitionNoise_Zp, ...
+                ones(1,me.lenZ)*me.transitionNoise_Zpp]);
+            ContinouosF = [Oz, Iz; 
+                            Oz, Oz];
+            M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
+                       O2z, ContinouosF' ];
+            N = expm(M);
+            discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
+            me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
             
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
@@ -124,6 +139,7 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
                 % ---------------------------------------------------
                 X_plus = X_minus;
                 P_plus = P_minus;
+                me.Innovation = [];
             else
                 % Yes, there's sensor info: update estimate:
                 % ---------------------------------------------------
@@ -141,11 +157,12 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
                 Pyy = Pyy + me.CovMeasurementNoise; % This wasn't either in Roland's paper!!!
 
                 K = Pxy/Pyy;
-                Innovation = obs-y_mean';
+                me.Innovation = obs-y_mean';
 
-                X_plus = X_minus + (K * Innovation)';
+                X_plus = X_minus + (K * me.Innovation)';
                 P_plus = P_minus - K * Pyy*K';
             end
+            
 
             % MBS
             % Convert state vector "X" back to MBS coordinates "q":

@@ -329,6 +329,74 @@ classdef (Abstract) mbeEstimatorBase < handle
                     title('Mahalanobis distance: Cannot eval, no covariance P available!')
                 end
             hold off
+            inn = cell2mat(hist.estim_inn);
+            n_sensors = size(inn,1);
+            timesteps = (1:length(inn))*hist.t(end)/length(inn);
+            even_length = (length(inn)-mod(length(inn),2)); % Maximun even length of inn
+            for i = 1:n_sensors
+               figure()
+               clf
+               hold on
+                  grid on
+                  subplot(3,1,1)
+                      plot(timesteps, inn(i,:))
+                      title(sprintf('Innovation of sensor %d (mean = %f)',i,mean(inn(i,:))))
+                  subplot(3,1,2)
+                      INN = fft(inn(i,1:even_length), even_length);
+                      Sinn = ((abs(INN)).^2)/even_length;
+                      CumSinn = 2*cumsum(Sinn(1:even_length/2))/even_length;
+                      var_inn = var(inn(i,1:even_length));
+                      ideal_periodogram = 2*var_inn*(1:even_length/2)/even_length;
+                      upper_limit = ideal_periodogram+var_inn*0.03; % 3% upper tolerance
+                      lower_limit = ideal_periodogram-var_inn*0.03; % 3% lower tolerance
+                      if (me.mechanism_type.multirate_sensor_period)
+                          multirate = me.mechanism_type.multirate_sensor_period;
+                      else
+                          multirate = me.dt;
+                      end
+                      Fs = 1/multirate; % Sampling rate
+                      hold on
+                          f = (1:even_length/2)*(Fs/(even_length/2));
+                          plot(f,CumSinn,'b');
+                          plot(f,ideal_periodogram,'k');
+                          plot(f,upper_limit,'r:');
+                          plot(f,lower_limit,'r:');
+                          title(sprintf('Cumulative periodogram of measurement %i', i));
+                          xlabel('Frequency');
+                          legend('periodogram', 'ideal periodogram', 'tolerance (3%)');
+                      hold off
+                  subplot(3,1,3)
+                      hold on
+                         plot(f,Sinn(1:even_length/2),':r')
+                         plot(f,ones(size(f))*var_inn);
+                      hold off
+               figure()
+               clf
+               hold on
+                      INN = fft(inn(i,1:even_length), even_length);
+                      Sinn = ((abs(INN)).^2)/even_length;
+                      CumSinn = 2*cumsum(Sinn(1:even_length/2))/even_length;
+                      var_inn = var(inn(i,1:even_length));
+                      ideal_periodogram = 2*var_inn*(1:even_length/2)/even_length;
+                      upper_limit = ideal_periodogram+var_inn*0.03; % 3% upper tolerance
+                      lower_limit = ideal_periodogram-var_inn*0.03; % 3% lower tolerance
+                      if (me.mechanism_type.multirate_sensor_period)
+                          multirate = me.mechanism_type.multirate_sensor_period;
+                      else
+                          multirate = me.dt;
+                      end
+                      Fs = 1/multirate; % Sampling rate
+                      hold on
+                          f = (1:even_length/2)*(Fs/(even_length));
+                          fill([f,fliplr(f)],[upper_limit,fliplr(lower_limit)]/var_inn,'c', 'edgecolor','c');
+                          plot(f,CumSinn/var_inn,'k--','linewidth',2);
+%                           plot(f,ideal_periodogram,'k','linewidth',2);
+                          title(sprintf('Cumulative periodogram the innovation %i', i));
+                          xlabel('Frequency');
+                          legend('Ideal periodogram +- 3%', 'Periodogram');
+                      hold off                  
+                  
+            end
 
         end % if show_benchmark_graphs
 
@@ -365,6 +433,9 @@ classdef (Abstract) mbeEstimatorBase < handle
             % INPUTS:
             label = td.label;
             sExp = class(me); %  sExp: observer under study,
+            if isprop(me,'dynamics_formulation_and_integrator')
+                sExp = strcat(sExp, char(me.dynamics_formulation_and_integrator.integrator_type));
+            end
             sErrorScale = sprintf('Errorscale%d',td.error_scale);
             sMultirate  = sprintf('Multirate%d',td.multirate_decimation);
 %             elapsed_time = perfResults.elapsed_t;%  elapsed_time: (t/real-time)

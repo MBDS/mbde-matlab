@@ -44,7 +44,7 @@ classdef mbeMechModelFiveBars1 < mbeMechModelFiveBarsBase
             x3 = 2.5; y3= 0;
             theta1 = 0; % Initial DOF value
             theta2 = pi; % Initial DOF value
-            me.q_init_approx = [x1, y1, x2, y2, x3, y3, theta1, theta2]'; % Initial approximated position
+            me.q_init_aprox = [x1, y1, x2, y2, x3, y3, theta1, theta2]'; % Initial approximated position
             me.zp_init = [0, 0]'; % Initial DOF velocity
             % gravity
             me.g = -10;
@@ -95,7 +95,30 @@ classdef mbeMechModelFiveBars1 < mbeMechModelFiveBarsBase
                 0; me.m23+me.m3B; ... % pt 3
                 0; 0 ...              % rel coords (torques)
                 ];
-        end        
+        end
+        
+        function [me] = update_M(me)
+            % Recalculate mass matrix if masses and/or lengths are changed
+            LA1 = me.bar_lengths(1);
+            L12 = me.bar_lengths(2);
+            L23 = me.bar_lengths(3);
+            L3B = me.bar_lengths(4);
+            MA1 = me.massMatrixBar(me.mA1,LA1);
+            M12 = me.massMatrixBar(me.m12,L12);
+            M23 = me.massMatrixBar(me.m23,L23);
+            M3B = me.massMatrixBar(me.m3B,L3B);
+
+            % Global Mass Matrix
+            me.M = zeros(me.dep_coords_count);
+            end1=1:2; end2=3:4;
+            p1=1:2; p2=3:4; p3=5:6;
+
+            me.M(p1,p1) = MA1(end2,end2);  % pt: 1
+            me.M(p3,p3) = M3B(end1,end1);  % pt: 3
+            me.M([p1 p2],[p1 p2]) = me.M([p1 p2],[p1 p2]) + M12;
+            me.M([p2 p3],[p2 p3]) = me.M([p2 p3],[p2 p3]) + M23;
+        end
+        
     end
     
     % Implementation of Virtual methods from mbeMechModelBase

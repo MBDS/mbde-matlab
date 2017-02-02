@@ -82,7 +82,23 @@ classdef mbeMechModelFourBars1 < mbeMechModelFourBarsBase
         function [me] = update_Qg(me)
         % Re-calc Qg from gravity vector & masses.
             me.Qg = 0.5*me.g*[0; me.mA1+me.m12; 0; me.m12+me.m2B; 0];
-        end            
+        end 
+        function [me] = update_M(me)
+            % Recalculates mass matrix (M) if masses and / or lengths are changed
+            % Local Mass matrices. 
+            LA1 = me.bar_lengths(1);
+            L12 = me.bar_lengths(2);
+            L2B = me.bar_lengths(3);
+            MA1 = me.massMatrixBar(me.mA1,LA1);
+            M12 = me.massMatrixBar(me.m12,L12);
+            M2B = me.massMatrixBar(me.m2B,L2B);
+
+            % Global Mass Matrix
+            me.M = zeros(5,5);
+            me.M(1:2,1:2) = MA1 (3:4,3:4);
+            me.M(3:4,3:4) = M2B (1:2,1:2);
+            me.M(1:4,1:4) = me.M(1:4,1:4) + M12;
+        end
         
     end
     

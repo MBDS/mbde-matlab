@@ -23,7 +23,7 @@ classdef mbeKinematicsSolver
 	% -----------------------------------------------------------------------------
 
     properties(Constant)
-        pos_problem_tol = 1e-6;      % Position problem: max |\Phi| value
+        pos_problem_tol = 1e-13;      % Position problem: max |\Phi| value
         pos_problem_max_iters = 1000; % Position problem: max iterations
     end
 

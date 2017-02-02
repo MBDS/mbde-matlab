@@ -30,12 +30,13 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
     properties(Access=private)
         CovPlantNoise; CovMeasurementNoise;
         F; %G; % Transition matrices
-        MAX_INCR_X = 1e-5; % Should it be lower? 1e-10?
+        MAX_INCR_X = 1e-8; % Should it be lower? 1e-10?
+        MAX_ERR = 1e-3; % Not always achievable with this method
 %         INCR_X_PLUS = 10*MAX_INCR_X;
-        MAX_IEKF_ITERS = 20;
+        MAX_IEKF_ITERS = 2000;
         lenq;
         FULL_COV_SENSORS;
-        PM_VAR  = 1e-8;   % Perfect measurement precision
+        PM_VAR  = 1e-3;   % Perfect measurement variance
         
     end
     
@@ -60,6 +61,10 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             % the plant noise, because provides different values depending
             % on the initial position
             me.lenq = length(me.q);
+            Iz = eye(me.lenq);
+            Oz = zeros(me.lenq);
+            lenX = 2*me.lenq;
+            O2z = zeros(lenX);
 %             PZ = diag(me.initVar_Z*ones(1,me.lenZ));
 %             PZp = diag(me.initVar_Zp*ones(1,me.lenZ));
 %             R = mbeKinematicsSolver.calc_R_matrix(me.mech_phys_model,me.q);
@@ -76,9 +81,20 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             % Covariance of plant noise in independent coordinates (the
             % covariance of the plant with dependent coordinates will be
             % calculated every time step in the main loop of the filter)
-            me.CovPlantNoise = diag([...
-                ones(1,me.lenq)*me.transitionNoise_Z*me.dt, ...
-                ones(1,me.lenq)*me.transitionNoise_Zp*me.dt]);
+%             me.CovPlantNoise = diag([...
+%                 ones(1,me.lenq)*me.transitionNoise_Z*me.dt, ...
+%                 ones(1,me.lenq)*me.transitionNoise_Zp*me.dt]);
+
+            ContinuousCovPlantNoise = diag([...
+                ones(1,me.lenq)*me.transitionNoise_Zp, ...
+                ones(1,me.lenq)*me.transitionNoise_Zpp]);
+            ContinouosF = [Oz, Iz; 
+                            Oz, Oz];
+            M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
+                       O2z, ContinouosF' ];
+            N = expm(M);
+            discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
+            me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
             
             
             % These should be constant for all iterations, so eval them once:
@@ -115,9 +131,11 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
 
            
             incr_X_plus = 1;
+            err = 1; 
             IEKF_ITERS = 0;
             X_plus = X_less;
-            while (incr_X_plus>me.MAX_INCR_X && IEKF_ITERS < me.MAX_IEKF_ITERS)
+%             while (incr_X_plus>me.MAX_INCR_X && IEKF_ITERS < me.MAX_IEKF_ITERS)
+            while (err>me.MAX_ERR && IEKF_ITERS < me.MAX_IEKF_ITERS)
                 IEKF_ITERS = IEKF_ITERS + 1;
                 me.q = X_plus(1:me.lenq);
                 me.qp = X_plus(me.lenq+(1:me.lenq));
@@ -135,12 +153,14 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                     H = [dh_dq, dh_dqp;
                         H21, zeros(size(H21));
                         H31, H32];
-                    
-                    obs_predict = [me.bad_mech_phys_model.sensors_simulate(me.q,me.qp,me.qpp);
+                    sensors_predict = me.bad_mech_phys_model.sensors_simulate(me.q,me.qp,me.qpp);
+                    obs_predict = [sensors_predict;
                                    phi;
                                    phiq*me.qp];
                     full_obs = [obs; zeros(2*length(phi),1)];
                     COV_SENSORS = me.FULL_COV_SENSORS;
+                    COV_SENSORS((length(obs)+1):(length(obs)+2*length(phi)),(length(obs)+1):(length(obs)+2*length(phi)))=COV_SENSORS((length(obs)+1):(length(obs)+2*length(phi)),(length(obs)+1):(length(obs)+2*length(phi)))*exp(-IEKF_ITERS);
+                    me.Innovation = obs-sensors_predict;
                 else
                     H = [H21, zeros(size(H21));
                         H31, H32];
@@ -149,16 +169,25 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                                    phiq*me.qp];
                     full_obs = zeros(2*length(phi),1);
                     
-                    COV_SENSORS = me.FULL_COV_SENSORS((length(obs)+1):(length(obs)+2*length(phi)),(length(obs)+1):(length(obs)+2*length(phi)));
+                    COV_SENSORS = me.FULL_COV_SENSORS((length(obs)+1):(length(obs)+2*length(phi)),(length(obs)+1):(length(obs)+2*length(phi)))*exp(-IEKF_ITERS);
+                    me.Innovation = [];
                 end
-                Innovation = full_obs-obs_predict;
+                err = norm([phi;phiq*me.qp]);
+                locInnovation = full_obs-obs_predict;
                 K_i = P_less*H'/(H*P_less*H'+COV_SENSORS);
-                X_plus_new = X_less+K_i*(Innovation-H*(X_less-X_plus));
+                X_plus_new = X_less+K_i*(locInnovation-H*(X_less-X_plus));
                 incr_X_plus = norm(X_plus-X_plus_new);
                 X_plus = X_plus_new;
             end
             me.P = (eye(length(X_plus))-K_i*H)*P_less;
-
+%             I_KH = (eye(length(X_plus))-K_i*H);
+%             me.P = I_KH*P_less*I_KH'+K_i*COV_SENSORS*K_i'; % Joseph Form
+            IEKF_ITERS
+            if(norm(phi)>1e-3)
+                warning('convergence not achieved')
+                phi
+                pause();
+            end
             
             % Recover KF -> MBS coordinates
             % ------------------------------

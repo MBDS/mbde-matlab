@@ -25,7 +25,7 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
         eval_sensors_at_X_less = 0; % 1
         
         tol_dyn = 1e-10;
-        iter_max = 100;
+        iter_max = 1000;
     end
     
     % Private vars
@@ -56,10 +56,14 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
             me.CovPlantNoise = diag([...
                 ones(1,me.lenZ)*me.transitionNoise_Zp, ...   % cont vs discr: "*(me.dt)^2"
                 ones(1,me.lenZ)*me.transitionNoise_Zpp]);
-            
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
-            me.CovMeasurementNoise = diag(sensors_stds.^2);
+%             if (me.mechanism_type.multirate_sensor_period)
+%                 me.CovMeasurementNoise = diag(sensors_stds.^2)*me.mechanism_type.multirate_sensor_period;
+%             else
+                me.CovMeasurementNoise = diag(sensors_stds.^2)*me.dt;
+%             end
+            
         end
         
         % Run one timestep of the estimator (see docs in mbeEstimatorFilterBase)
@@ -134,20 +138,24 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
             
             
             % Virtual sensors
-            if (~isempty(obs))
+%             if (~isempty(obs))
                 % Eval observation Jacobian wrt the indep. coordinates:
                 [dh_dz , dh_dzp] = me.bad_mech_phys_model.sensors_jacob_indep(q_next,qp_next,me.qpp);
                 H=[dh_dz, dh_dzp];   % Was: H = [dh_dq(:,me.iidxs) , dh_dqp(:,me.iidxs) ];
 				% Kalman gain
 				K = (P_next*H')/(me.CovMeasurementNoise);
-				
-                % measurement update:
                 obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
-                
-                Innovation = (obs_predict-obs);
+                if (~isempty(obs))
+                % measurement update:
+                     me.Innovation = (obs_predict-obs);
+                     Inn = me.Innovation;
+                else 
+                    me.Innovation = [];%0*obs_predict;
+                    Inn = zeros(size(H,1), 1);
+                end
                 % Residual
-                g1 = Xp_next(ind_idxs1)-X_next(ind_idxs2)+K(ind_idxs1,:)*Innovation;
-                g2 = M_bar*Xp_next(ind_idxs2)-Q_bar+M_bar*K(ind_idxs2,:)*Innovation;
+                g1 = Xp_next(ind_idxs1)-X_next(ind_idxs2)+K(ind_idxs1,:)*Inn;
+                g2 = M_bar*Xp_next(ind_idxs2)-Q_bar+M_bar*K(ind_idxs2,:)*Inn;
                 g=[g1;g2];
                 error = norm(g); 
                 iter = 0; 
@@ -194,19 +202,24 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                     
                     %y = virtual_sensor_eval (q_next,qp_next,params);
                     %Innovation = (y-y_sensor);
-                    obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
-                    Innovation = (obs_predict-obs);                    
+                                        
+                    if (~isempty(obs))
+                        % measurement update:
+                        obs_predict = me.bad_mech_phys_model.sensors_simulate(q_next,qp_next,me.qpp); % TODO: acceleration problem should be solved to get qpp_next instaead of me.qpp
+                        me.Innovation = (obs_predict-obs);
+                        Inn = me.Innovation;
+                    end
                     
-                    g1 = Xp_next(ind_idxs1)-X_next(ind_idxs2)+K(ind_idxs1,:)*Innovation;
-                    g2 = M_bar*Xp_next(ind_idxs2)-Q_bar+M_bar*K(ind_idxs2,:)*Innovation;
+                    g1 = Xp_next(ind_idxs1)-X_next(ind_idxs2)+K(ind_idxs1,:)*Inn;
+                    g2 = M_bar*Xp_next(ind_idxs2)-Q_bar+M_bar*K(ind_idxs2,:)*Inn;
                     g=[g1;g2];
                     error = norm(g);
                 end
-            end   % End if we have an observation             
+%             end   % End if we have an observation             
 			
 % 			zpp = Xp_next(ind_idxs2);
             zpp = M_bar\Q_bar;
-            
+%             iter
             % Recover KF -> MBS coordinates
             % ------------------------------
             me.P = P_next;

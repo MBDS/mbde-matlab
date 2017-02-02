@@ -24,14 +24,15 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
         % sensor & its linearization point:
         eval_sensors_at_X_less = 1;
         dataset;
+        COVhist;
     end
-    
+        
     % Private vars
     properties(Access=private)
         CovPlantNoise; CovMeasurementNoise;
         F; %G; % Transition matrices
     end
-    
+   
     methods(Access=protected)
         
         % Returns the location (indices) in P for the independent
@@ -47,14 +48,27 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
         % Init the filter (see docs in mbeEstimatorFilterBase)
         function [] = init_filter(me)
             % 1) q,qp,qpp: already set in base class.
+            Iz = eye(me.lenZ);
+            Oz = zeros(me.lenZ);
+            lenX = 2*me.lenZ;
+            O2z = zeros(lenX);
+            
             % 2) Initial covariance: 
             me.P = diag([...
                 me.initVar_Z*ones(1,me.lenZ), ...
                 me.initVar_Zp*ones(1,me.lenZ)]);
             
-            me.CovPlantNoise = diag([...
-                ones(1,me.lenZ)*me.transitionNoise_Z*me.dt, ...
-                ones(1,me.lenZ)*me.transitionNoise_Zp*me.dt]);
+%           Discrete plant noise covariance matrix from its continouos counterpart (Van Loan's method)
+            ContinuousCovPlantNoise = diag([...
+                ones(1,me.lenZ)*me.transitionNoise_Zp, ...
+                ones(1,me.lenZ)*me.transitionNoise_Zpp]);
+            ContinouosF = [Oz, Iz; 
+                            Oz, Oz];
+            M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
+                       O2z, ContinouosF' ];
+            N = expm(M);
+            discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
+            me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
             
             % These should be constant for all iterations, so eval them once:
             me.F = [eye(me.lenZ) eye(me.lenZ)*me.dt;zeros(me.lenZ) eye(me.lenZ)];
@@ -63,6 +77,9 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
             me.CovMeasurementNoise = diag(sensors_stds.^2);
+%             me.CovMeasurementNoise =    0.00039182251878902;
+
+            me.COVhist = ones(1,350);
         end
         
         % Run one timestep of the estimator (see docs in mbeEstimatorFilterBase)
@@ -100,19 +117,40 @@ classdef mbeEstimatorDEKF < mbeEstimatorFilterBase
                 
                 % Kalman gain:
                 K = P_less*H'/(H*P_less*H'+me.CovMeasurementNoise);
-
+               
                 % measurement update:
                 obs_predict = me.bad_mech_phys_model.sensors_simulate(me.q,me.qp,me.qpp);
                 
-                Innovation = obs-obs_predict;
-                X_plus = X_less + K*Innovation;
+                me.Innovation = obs-obs_predict;
+                X_plus = X_less + K*me.Innovation;
                 %     P = (eye(2)-K*H)*P_less*(eye(2)-K*H)'+K*CovMeasurementNoise*K';
                 me.P = (eye(length(X_less))-K*H)*P_less;
             else
                 % No sensor:
                 X_plus = X_less;
                 me.P = P_less;
+                me.Innovation = [];
             end
+            
+% % % % % %             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % % % % %             %%%%%%%%%%%%%%%%%% test %%%%%%%%%%%%%%%%
+% % % % % %             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             global data_saved
+%             data_saved.F = [data_saved.F,me.F];
+%             data_saved.H = [data_saved.H,H]; % it works only without multirate
+% %                       data_saved.inn{end+1} = Innovation;
+%                       data_saved.Hcell{end+1} = H;
+%                       data_saved.Pcell{end+1} = P_less;
+%                       data_saved.Kcell{end+1} = K;
+% % % % % % % %                       me.COVhist(1:end-1) = me.COVhist(2:end);
+% % % % % % % %                       me.COVhist(end) = Innovation;
+% % % % % % % %                       COVinn = me.COVhist*me.COVhist'/length(me.COVhist);
+% % % % % % % %                       me.CovPlantNoise = K*COVinn*K';
+% % % % % % % %                       me.CovMeasurementNoise = COVinn-H * me.P * H';
+%                       
+% % % % % %             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % % % % %             %%%%%%%%%%%%%%%% end test %%%%%%%%%%%%%%
+% % % % % %             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Recover KF -> MBS coordinates
             % ------------------------------
