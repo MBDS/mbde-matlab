@@ -17,24 +17,23 @@
 %     along with MBDE-MATLAB.  If not, see <http://www.gnu.org/licenses/>.
 % -----------------------------------------------------------------------------
 
-clear; close all; clear all; clear classes;
+clear; close all; clear all;
 
 addpath('toolbox_mbe');
 % 1) Select the estimator: 
 % ---------------------------------
 estim = mbeEstimatorDEKF(); % DEKF
-% estim = mbeEstimatorIncrManifold(); % AKA errorEKF
-% estim = mbeEstimatorIncrManifold(); estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR();estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal; % errorEKF with matrix R formulation
-% and trapezoidal rule intergation
+% estim = mbeEstimatorIncrManifold(); % AKA errorEKF: by default, I3AL MB formulation with trapezoidal rule integration
+% estim = mbeEstimatorIncrManifold(); estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR();estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal; % errorEKF with matrix R formulation and trapezoidal rule intergation
 % estim = mbeEstimatorDIEKFacc();
 % estim = mbeEstimatorUKF(); % UKF with trapezoidal rule integration
 % estim = mbeEstimatorUKF(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intEuler; % UKF with forward Euler integrator
 % estim = mbeEstimatorCEKF(); % CEKF with forward Euler integration for covariance matrix of the estimation error
 % estim = mbeEstimatorCEKF_TR(); % CEKF with trapezoidal rule integration for covariance matrix of the estimation error
-% estim = mbeEstimatorDIEKF_pm(); 
-% estim = mbeEstimatorBatchMRF();
-% estim = mbeEstimatorSCKF();
+% estim = mbeEstimatorDIEKF_pm(); % Method with "perfect measurements"
+% estim = mbeEstimatorSCKF(); % Smoothly constrained Kalman filter
 
+% estim = mbeEstimatorBatchMRF(); % Not an observer, but a batch smoother
 
 % Formulation for evaluating accelerations after each time step:
 %estim.post_iter_accel_solver = mbeDynFormulationMatrixR(); 
@@ -42,7 +41,7 @@ estim = mbeEstimatorDEKF(); % DEKF
 
 % 2) Pick multibody model and set of sensors:
 % ---------------------------------
-if (1) 
+if (1) % Normal behaviour is achieved with this condition set to 1. 
     sen_noise = deg2rad(1);
 % Four-bar linkage:
 %     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], sen_noise)}; % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
@@ -58,16 +57,18 @@ if (1)
     
 % 3) Select kind of error in modeling: 
 % -------------------------------------
-    estim.bad_model_errors.error_type = [1,2]; % 1=>Gravity error; 2=>Initial position error; 
+    estim.bad_model_errors.error_type = [1,2]; % 1=>Gravity error; 2=>Initial position error;  
     estim.bad_model_errors.error_scale = 1; % Scale of the modeling error
     
         
     % Estimator further params:
-    multiple_multirate = 1; % if multiple_multirate == 0 => measurement every time step, if multiple multirate ==2 => measurements every 2 time steps, etc.
-    estim.dt       = 5e-3;
+    multiple_multirate = 1; % if multiple_multirate equals 0 or 1 => measurement every time step, if multiple multirate ==2 => measurements every 2 time steps, etc.
+    estim.dt       = 5e-3; % Time step of the simulations
     estim.mechanism_type.multirate_sensor_period = estim.dt*multiple_multirate; 
-    estim.end_time = 10; 
-    % Set initial covariance matrix and plant covariance matrix
+    estim.end_time = 10; % Simulation time
+    % Set initial covariance matrix and plant covariance matrix (Some of
+    % these values might have to be changed depending on the set of
+    % sensors, the mechanism, the modeling error, etc).
     estim.transitionNoise_Z = 0; 
     estim.transitionNoise_Zp = 0;
     if isa(estim.mech_phys_model,'mbeMechModelFourBars1')
@@ -87,8 +88,9 @@ if (1)
     if isa(estim.mech_phys_model,'mbeMechModelFiveBars1')
         if estim.bad_model_errors.error_scale==1
             if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')
+                % Select one of the following if using CEKF or CEKF_TR
                 estim.transitionNoise_Zpp = deg2rad(87.5); % Noise with encoders
-                estim.transitionNoise_Zpp = deg2rad(5.25); % Noise with gyros
+%                 estim.transitionNoise_Zpp = deg2rad(5.25); % Noise with gyros
                 estim.initVar_Z = 1.3e-5;
                 estim.initVar_Zp = 1.3e-3;
             elseif isa(estim,'mbeEstimatorSCKF')
@@ -98,8 +100,9 @@ if (1)
             end
         elseif estim.bad_model_errors.error_scale==0.5
             if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')
+                % Select one of the following if using CEKF or CEKF_TR
                 estim.transitionNoise_Zpp = deg2rad(35); % Noise wiht encoders
-                estim.transitionNoise_Zpp = deg2rad(3.5);% Noise with gyros
+%                 estim.transitionNoise_Zpp = deg2rad(3.5);% Noise with gyros
                 estim.initVar_Z = 1.3e-5;
                 estim.initVar_Zp = 1.3e-3;
             elseif isa(estim,'mbeEstimatorSCKF')
@@ -133,19 +136,7 @@ end
 
 
 % Select dynamics formulation for simulating GT/Bad model:
-%estim.mechanism_type.dynamic_formulation = mbeDynFormulationMatrixR();
-
-% Enable simulating "multirate sensors": set this to the period
-% between sensor data (e.g. 1.0/f for f in Hz). Leave to 0
-% (default) to simulate sensor data at every time step:
-%estim.mechanism_type.multirate_sensor_period = 1.0/ 5;
-
-
-% Change default installed sensors:
-% List of installed sensors (cell of objects derived from mbeSensorBase)
-%estim.mech_phys_model.installed_sensors = { ...
-%        mbeSensorPosIndex(5, deg2rad(0.5)), ...  % mbeSensorPosIndex(qp_index, std_dev_noise)
-%    };
+estim.mechanism_type.dynamic_formulation = mbeDynFormulationMatrixR();
 
 % 4) Launch filter offline estimation:
 % ------------------------------------

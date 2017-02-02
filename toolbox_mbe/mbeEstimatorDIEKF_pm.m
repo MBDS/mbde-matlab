@@ -182,7 +182,6 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             me.P = (eye(length(X_plus))-K_i*H)*P_less;
 %             I_KH = (eye(length(X_plus))-K_i*H);
 %             me.P = I_KH*P_less*I_KH'+K_i*COV_SENSORS*K_i'; % Joseph Form
-            IEKF_ITERS
             if(norm(phi)>1e-3)
                 warning('convergence not achieved')
                 phi
