@@ -14,12 +14,13 @@ Toolbox features
 
 Licensing
 ----------
-MBDE-MATLAB is licensed by University of Coruña and University of Almería under GNU GPL v3.
+MBDE-MATLAB is licensed by University of A Coruña and University of Almería under GNU GPL v3.
 
 Citation
 --------------
 This toolbox was introduced in: 
   * E. Sanjurjo, J.L. Blanco, J.L. Torres, M.A. Naya, "Testing the efficiency and accuracy of multibody-based state observers", ECCOMAS Thematic Conference on Multibody Dynamics, 2015. [[PDF](http://ingmec.ual.es/~jlblanco/papers/sanjurjo2015eccomas_mbs_observers.pdf)]
+  * E. Sanjurjo, M.Á. Naya, J.L. Blanco-Claraco, J.L. Torres-Moreno, A. Giménez-Fernández. Accuracy and efficiency comparison of various nonlinear Kalman filters applied to multibody models. Nonlinear Dyn (2017). doi:10.1007/s11071-017-3354-z [[LINK](http://rdcu.be/oY1f)]
 
 Installation
 --------------
