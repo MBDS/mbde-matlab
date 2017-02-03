@@ -29,5 +29,5 @@ Just add the directory `toolbox_mbe` to your MATLAB `PATH`, e.g. from the menu "
 Demos
 ----------
   * [`demo_dynamic_simulation.m`](demo_dynamic_simulation.m): Runs a dynamic simulation for a given mechanism.
-  * [`demo_run_observer_offline.m`](demo_run_observer_offline.m): Run an offline estimation of a given mechanism, with a given set of sensors and using the especific estimation method. 
+  * [`demo_run_observer_offline.m`](demo_run_observer_offline.m): Runs an offline estimation of a given mechanism, with a given set of sensors and using the especific estimation method. 
 
