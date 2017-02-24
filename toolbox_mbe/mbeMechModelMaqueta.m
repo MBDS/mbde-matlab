@@ -35,7 +35,7 @@ classdef mbeMechModelMaqueta < mbeMechModelFourBarsExtraBase
    
     methods 
         % Constructor
-        function [me] = mbeMechModelMaqueta()
+        function [me] = mbeMechModelMaqueta(LA1,L12,L2B)
             % Initial conditions
             % M A Q U E T A
 %             x1 = .120; y1= 0; x2 = .540; y2 = .338; x3 = .330; y3 = .323; theta = 0; beta = deg2rad(127.5); % dof->theta                            
@@ -54,13 +54,17 @@ classdef mbeMechModelMaqueta < mbeMechModelFourBarsExtraBase
             me.xA = 0; me.yA = 0; me.xB = 0.8; me.yB = 0;
             me.fixed_points = [me.xA, me.yA, me.xB, me.yB];
             % geometry
-            LA1 = 0.126; %LA1=norm([me.xA,me.yA]-[x1,y1]); 
-            L12 = 0.54;%L12=norm([x2,y2]-[x1,y1]); 
-            L2B = 0.455; %L2B=norm([me.xB,me.yB]-[x2,y2]); 
-%             L2B = 0.426; %L2B=norm([me.xB,me.yB]-[x2,y2]); 
-            
-            L13 = 0.38422;
-            L32 = 0.212191;
+            if nargin < 3
+                disp('default length values')
+                LA1=0.126;
+                L12 = 0.54;%L12=norm([x2,y2]-[x1,y1]); 
+                L2B = 0.455; %L2B=norm([me.xB,me.yB]-[x2,y2]); 
+                %L2B = 0.426; %L2B=norm([me.xB,me.yB]-[x2,y2]);
+                %L13 = 0.38422;
+                %L32 = 0.212191;
+            end
+            L13 = sqrt(2*(L12/2)^2);
+            L32 = L13;
             me.bar_lengths = [LA1, L12, L2B, L13, L32];
             % mass
             me.mA1=1; me.m12 = 2; me.m2B = 4;

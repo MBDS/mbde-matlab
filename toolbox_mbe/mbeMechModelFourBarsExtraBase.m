@@ -98,8 +98,10 @@ classdef mbeMechModelFourBarsExtraBase < mbeMechModelBase
             val(4) = mbe_iff(abs(sin(theta)) < 0.7,...
                 y1-me.yA-LA1*sin(theta), ...
                 x1-me.xA-LA1*cos(theta));
-            val(5) = (x3-x1)^2+(y3-y1)^2-L13^2;
+            %val(5) = (x3-x1)^2+(y3-y1)^2-L13^2;
             val(6) = (x3-x2)^2+(y3-y2)^2-L32^2;
+            val(5) = (x3-x1)*(x2-x1)+(y3-y1)*(y2-y1)-L13*L12*cos(deg2rad(45));
+            %val(6) = (x1-x2)*(x3-x2)+(y1-y2)*(y3-y2)-L32*L12*cos(deg2rad(45));
             val(7) = (x2-me.xB)-L2B*cos(beta);
         end % of phi()
         
@@ -119,8 +121,10 @@ classdef mbeMechModelFourBarsExtraBase < mbeMechModelBase
             phiq(4,:) = mbe_iff(abs(sin(theta)) < 0.7,...
                 [0,             1,             0,             0, -LA1*cos(theta),           0,           0,     0], ...
                 [1,             0,             0,             0,  LA1*sin(theta),           0,           0,     0]);
-            phiq(5,1) = -2*(x3-x1); phiq(5,2) = -2*(y3-y1); phiq(5,6) = 2*(x3-x1); phiq(5,7) = 2*(y3-y1);
+            %phiq(5,1) = -2*(x3-x1); phiq(5,2) = -2*(y3-y1); phiq(5,6) = 2*(x3-x1); phiq(5,7) = 2*(y3-y1);
             phiq(6,3) = -2*(x3-x2); phiq(6,4) = -2*(y3-y2); phiq(6,6) = 2*(x3-x2); phiq(6,7) = 2*(y3-y2);
+            phiq(5,1) = -x3-x2+2*x1; phiq(5,2) = -y3-y2+2*y1; phiq(5,3) = x3-x1; phiq(5,4) = y3-y1; phiq(5,6) = x2-x1; phiq(5,7) = y2-y1;
+            %phiq(6,1) = x3-x2; phiq(6,2) = y3-y2; phiq(6,3) = -x1-x3+2*x2; phiq(6,4) = -y1-y3+2*y2; phiq(6,6) = x1-x2; phiq(6,7) = y1-y2;
             phiq(7,3) = 1; phiq(7,8) = L2B*sin(beta);
             
         end % jacob_phi_q()
@@ -141,7 +145,8 @@ classdef mbeMechModelFourBarsExtraBase < mbeMechModelBase
             dotphiq(4,:) = mbe_iff(abs(sin(theta)) < 0.7,...
                 [0,             0,             0,             0,  LA1*sin(theta)*thetap,           0,           0,     0], ...
                 [0,             0,             0,             0,  LA1*cos(theta)*thetap,           0,           0,     0]);
-            dotphiq(5,1) = -2*(x3p-x1p); dotphiq(5,2) = -2*(y3p-y1p); dotphiq(5,6) = 2*(x3p-x1p); dotphiq(5,7) = 2*(y3p-y1p);
+            %dotphiq(5,1) = -2*(x3p-x1p); dotphiq(5,2) = -2*(y3p-y1p); dotphiq(5,6) = 2*(x3p-x1p); dotphiq(5,7) = 2*(y3p-y1p);
+            dotphiq(5,1) = -x3p-x2p+2*x1p; dotphiq(5,2) = -y3p-y2p+2*y1p; dotphiq(5,3) = x3p-x1p; dotphiq(5,4) = y3p-y1p; dotphiq(5,6) = x2p-x1p; dotphiq(5,7) = y2p-y1p;
             dotphiq(6,3) = -2*(x3p-x2p); dotphiq(6,4) = -2*(y3p-y2p); dotphiq(6,6) = 2*(x3p-x2p); dotphiq(6,7) = 2*(y3p-y2p);
             dotphiq(7,3) = 0; dotphiq(7,8) = L2B*cos(beta)*betap;
             %--------------
