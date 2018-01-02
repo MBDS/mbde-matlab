@@ -152,11 +152,12 @@ classdef (Abstract) mbeEstimatorBase < handle
             end
 
         if (show_benchmark_graphs)
+            for j=1:lenZ,
             figure();
             clf;
             hold on
                 % ----------------------------------------------
-                title('Independent coordinate position')
+                title(sprintf('Independent coordinate position of DOF %i',j))
                 % ----------------------------------------------
                 grid on
                 
@@ -168,17 +169,18 @@ classdef (Abstract) mbeEstimatorBase < handle
                         std_th(i,:) = sqrt( P_diag(hist.Pidxs_z) );
                     end
 
-                    for i=1:lenZ,
+%                     for i=1:lenZ,
                         fill([x_axis fliplr(x_axis)],...
-                            [hist.estim_q(:,iidxs(i))+nSigmas_1_dof*std_th(:,i);...
-                            flipud(hist.estim_q(:,iidxs(i))-nSigmas_1_dof*std_th(:,i))]', 'c', 'EdgeColor', 'c');
-                        lgnds={lgnds{:}, sprintf('%.03f%%CI z(%u)',me.perf_eval_CI*100,i)};
-                    end
+                            [hist.estim_q(:,iidxs(j))+nSigmas_1_dof*std_th(:,j);...
+                            flipud(hist.estim_q(:,iidxs(j))-nSigmas_1_dof*std_th(:,j))]', 'c', 'EdgeColor', 'c');
+                        lgnds={lgnds{:}, sprintf('%.03f%%CI z(%u)',me.perf_eval_CI*100,j)};
+%                     end
                 end
-                plot(hist.t,states_GT.q(:,iidxs),'r--')
-                plot(hist.t,states_BadModel.q(:,iidxs),'g')
-                plot(hist.t,hist.estim_q(:,iidxs),'b')
-                legend({lgnds{:}, aux_lgnds_real{:}, aux_lgnds_model{:}, aux_lgnds_observer{:} } );
+                plot(hist.t,states_GT.q(:,iidxs(j)),'r--')
+                plot(hist.t,states_BadModel.q(:,iidxs(j)),'g')
+                plot(hist.t,hist.estim_q(:,iidxs(j)),'b')
+                legend({lgnds{:}, aux_lgnds_real{j}, aux_lgnds_model{j}, aux_lgnds_observer{j} } );
+            end
             hold off
 
             % Separate error plots:
@@ -192,12 +194,12 @@ classdef (Abstract) mbeEstimatorBase < handle
                 end
             end          
 
-            
+            for j = 1: lenZ
             figure;
             clf;
             hold on;
                 % ----------------------------------------------
-                title('Independent coordinate speed')
+                title(sprintf('Independent coordinate velocity of DOF %i',j))
                 % ----------------------------------------------
                 grid on
 
@@ -210,18 +212,19 @@ classdef (Abstract) mbeEstimatorBase < handle
                         std_thp(i,:) = sqrt( P_diag(hist.Pidxs_zp) );
                     end
 
-                    for i=1:lenZ,
+%                     for i=1:lenZ,
                         fill([x_axis fliplr(x_axis)],...
-                            [hist.estim_qp(:,iidxs(i))+nSigmas_1_dof*std_thp(:,i); ...
-                            flipud(hist.estim_qp(:,iidxs(i))-nSigmas_1_dof*std_thp(:,i))]', 'c', 'EdgeColor', 'c');
-                        lgnds={lgnds{:}, sprintf('%.03f%%CI zp(%u)',me.perf_eval_CI*100,i)};
-                    end
+                            [hist.estim_qp(:,iidxs(j))+nSigmas_1_dof*std_thp(:,j); ...
+                            flipud(hist.estim_qp(:,iidxs(j))-nSigmas_1_dof*std_thp(:,j))]', 'c', 'EdgeColor', 'c');
+                        lgnds={lgnds{:}, sprintf('%.03f%%CI zp(%u)',me.perf_eval_CI*100,j)};
+%                     end
                 end
                 
-                plot(hist.t,states_GT.qp(:,iidxs),'r')
-                plot(hist.t,states_BadModel.qp(:,iidxs),'g')
-                plot(hist.t,hist.estim_qp(:,iidxs),'b')
-                legend({lgnds{:}, aux_lgnds_real{:}, aux_lgnds_model{:}, aux_lgnds_observer{:} } );
+                plot(hist.t,states_GT.qp(:,iidxs(j)),'r')
+                plot(hist.t,states_BadModel.qp(:,iidxs(j)),'g')
+                plot(hist.t,hist.estim_qp(:,iidxs(j)),'b')
+                legend({lgnds{:}, aux_lgnds_real{j}, aux_lgnds_model{j}, aux_lgnds_observer{j} } );
+            end
             hold off
             % Separate error plots:
             % ----------------------------------------------
@@ -234,12 +237,12 @@ classdef (Abstract) mbeEstimatorBase < handle
                 end
             end          
             
-
+            for j=1:lenZ
             figure;
             clf;
             hold on;
                 % ----------------------------------------------
-                title('Independent coordinate accelerations')
+                title(sprintf('Independent coordinate acceleration of DOF %i',j))
                 % ----------------------------------------------
                 grid on
 
@@ -252,18 +255,19 @@ classdef (Abstract) mbeEstimatorBase < handle
                         std_thpp(i,:) = sqrt( P_diag(hist.Pidxs_zpp) );
                     end
 
-                    for i=1:lenZ,
+                    
                         fill([x_axis fliplr(x_axis)],...
-                            [hist.estim_qpp(:,iidxs(i))+nSigmas_1_dof*std_thpp(:,i); ...
-                            flipud(hist.estim_qpp(:,iidxs(i))-nSigmas_1_dof*std_thpp(:,i))]', 'c', 'EdgeColor', 'c');
-                        lgnds={lgnds{:}, sprintf('%.03f%%CI zpp(%u)',me.perf_eval_CI*100,i)};
-                    end
+                            [hist.estim_qpp(:,iidxs(j))+nSigmas_1_dof*std_thpp(:,j); ...
+                            flipud(hist.estim_qpp(:,iidxs(j))-nSigmas_1_dof*std_thpp(:,j))]', 'c', 'EdgeColor', 'c');
+                        lgnds={lgnds{:}, sprintf('%.03f%%CI zpp(%u)',me.perf_eval_CI*100,j)};
+                   
                 end
                 
-                plot(hist.t,states_GT.qpp(:,iidxs),'r')
-                plot(hist.t,states_BadModel.qpp(:,iidxs),'g')
-                plot(hist.t,hist.estim_qpp(:,iidxs),'b')
-                legend({lgnds{:}, aux_lgnds_real{:}, aux_lgnds_model{:}, aux_lgnds_observer{:} } );
+                plot(hist.t,states_GT.qpp(:,iidxs(j)),'r')
+                plot(hist.t,states_BadModel.qpp(:,iidxs(j)),'g')
+                plot(hist.t,hist.estim_qpp(:,iidxs(j)),'b')
+                legend({lgnds{:}, aux_lgnds_real{j}, aux_lgnds_model{j}, aux_lgnds_observer{j} } );
+            end
             hold off
             % Separate error plots:
             % ----------------------------------------------
@@ -397,6 +401,36 @@ classdef (Abstract) mbeEstimatorBase < handle
                       hold off                  
                   
             end
+            
+            
+            dQb_BM = zeros(lenZ,L);
+            null_acc = zeros(lenZ,1);
+            me.bad_mech_phys_model.Qm = 0;
+            for i = 1:L
+                % Calculation of the generalized force applied to the
+                % degrees of freedom to compensate for the modeling errors.
+                R = mbeKinematicsSolver.calc_R_matrix(me.bad_mech_phys_model,states_GT.q(i,:)');
+                Sc = mbeKinematicsSolver.accel_problem(me.bad_mech_phys_model,states_GT.q(i,:)',states_GT.qp(i,:)',null_acc);
+                Q = me.bad_mech_phys_model.eval_forces(states_GT.q(i,:)',states_GT.qp(i,:)');
+                Mzpp_BM = R'*me.bad_mech_phys_model.M*R*states_GT.qpp(i,iidxs)';
+                Qb_BM = R'*(Q-me.bad_mech_phys_model.M*Sc);
+                dQb_BM(:,i) = Mzpp_BM-Qb_BM;
+            end
+                
+            for i = 1:lenZ
+                figure();
+                clf;
+                hold on;
+                grid on;
+                plot(hist.t, dQb_BM(i,:), 'r');
+                plot(hist.t, hist.Qm(:,i), 'b');
+                legend('GT-BM', 'obs')                    
+                rmse = rms(dQb_BM(i,:)' - hist.Qm(:,i));
+                title(sprintf('Force estimation at DOF %i: RMSE %.3f N, GT-BM : %.3f',i,rmse, rms(dQb_BM(i,:))))
+                xlabel('Time (s)')
+                ylabel('Generalized force , (Nm)')
+            end
+                                
 
         end % if show_benchmark_graphs
 
@@ -423,6 +457,20 @@ classdef (Abstract) mbeEstimatorBase < handle
             perfResults.mean_maha_dist_pos = mean(maha_dist_pos);
             perfResults.max_maha_dist_vel = max(maha_dist_vel);
             perfResults.mean_maha_dist_vel = mean(maha_dist_vel);
+            dQb_BM = zeros(lenZ,L);
+            null_acc = zeros(lenZ,1);
+            me.bad_mech_phys_model.Qm = 0;
+            for i = 1:L
+                % Calculation of the generalized force applied to the
+                % degrees of freedom to compensate for the modeling errors.
+                R = mbeKinematicsSolver.calc_R_matrix(me.bad_mech_phys_model,states_GT.q(i,:)');
+                Sc = mbeKinematicsSolver.accel_problem(me.bad_mech_phys_model,states_GT.q(i,:)',states_GT.qp(i,:)',null_acc);
+                Q = me.bad_mech_phys_model.eval_forces(states_GT.q(i,:)',states_GT.qp(i,:)');
+                Mzpp_BM = R'*me.bad_mech_phys_model.M*R*states_GT.qpp(i,iidxs)';
+                Qb_BM = R'*(Q-me.bad_mech_phys_model.M*Sc);
+                dQb_BM(:,i) = Mzpp_BM-Qb_BM;
+            end
+            perfResults.force_error = dQb_BM';
             
         end % plot_estim_performance
         
@@ -490,7 +538,7 @@ classdef (Abstract) mbeEstimatorBase < handle
             eval(sprintf('results.%s.%s.%s.maha_mean(end+1)=perfResults.stats.mean_maha_dist;',sExp,sErrorScale,sMultirate));
 
             % Save back:
-            save(sStatFile, 'results');
+             save(sStatFile, 'results');
             
         end % end of updateStatsResults()
         

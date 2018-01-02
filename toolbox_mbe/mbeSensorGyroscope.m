@@ -87,7 +87,7 @@ classdef mbeSensorGyroscope < mbeSensorBase
             dh_dqpp=zeros(1,n);
 
             [p1,p2,v1,v2,L2] = extract_pos_vel_vectors(me,model,q,qp);
-            
+            numw = (v2(1)-v1(1))*(p1(2)-p2(2))+(v2(2)-v1(2))*(p2(1)-p1(1)); %numerator of the angular velocity
             % pt1!=fixed
             if (me.pt_is_fixed(1)==0)
                 %obs = ((v2x-v1x)*(y1-y2)+(v2y-v1y)*(x2-x1))/L^2;
@@ -95,8 +95,16 @@ classdef mbeSensorGyroscope < mbeSensorBase
                 % dz_dy1 = -(v1x - v2x)/L^2
                 % dz_dv1x = -(y1 - y2)/L^2
                 % dz_dv1y = (x1 - x2)/L^2
-                dh_dq (me.pt1_idxs(1)) = (v1(2) - v2(2))/L2;
-                dh_dq (me.pt1_idxs(2)) = -(v1(1) - v2(1))/L2;
+%                 dh_dq (me.pt1_idxs(1)) = (v1(2) - v2(2))/L2;
+%                 dh_dq (me.pt1_idxs(2)) = -(v1(1) - v2(1))/L2;
+                dL2_dP1x = -2*(p2(1)-p1(1));
+                dL2_dP1y = -2*(p2(2)-p1(2));
+                
+                dnumw_dP1x = -(v2(2)-v1(2));
+                dnumw_dP1y = (v2(1)-v1(1));
+                
+                dh_dq (me.pt1_idxs(1)) =        (dnumw_dP1x*L2-numw*dL2_dP1x)/L2^2;
+                dh_dq (me.pt1_idxs(2)) =        (dnumw_dP1y*L2-numw*dL2_dP1y)/L2^2;
                 dh_dqp(me.pt1_idxs(1)) = -(p1(2) - p2(2))/L2;
                 dh_dqp(me.pt1_idxs(2)) = (p1(1) - p2(1))/L2;
             end
@@ -106,8 +114,16 @@ classdef mbeSensorGyroscope < mbeSensorBase
                 % dz_dy2 =   (v1x - v2x)/L^2
                 % dz_dv2x =     (y1 - y2)/L^2
                 % dz_dv2y =    -(x1 - x2)/L^2
-                dh_dq (me.pt2_idxs(1)) = -(v1(2) - v2(2))/L2;
-                dh_dq (me.pt2_idxs(2)) =  (v1(1) - v2(1))/L2;
+%                 dh_dq (me.pt2_idxs(1)) = -(v1(2) - v2(2))/L2;
+%                 dh_dq (me.pt2_idxs(2)) =  (v1(1) - v2(1))/L2;
+                dL2_dP2x = 2*(p2(1)-p1(1));
+                dL2_dP2y = 2*(p2(2)-p1(2));
+                
+                dnumw_dP2x = (v2(2)-v1(2));
+                dnumw_dP2y = -(v2(1)-v1(1));
+                
+                dh_dq (me.pt2_idxs(1)) = (dnumw_dP2x*L2-numw*dL2_dP2x)/L2^2;
+                dh_dq (me.pt2_idxs(2)) = (dnumw_dP2y*L2-numw*dL2_dP2y)/L2^2;
                 dh_dqp(me.pt2_idxs(1)) =  (p1(2) - p2(2))/L2;
                 dh_dqp(me.pt2_idxs(2)) = -(p1(1) - p2(1))/L2;
             end

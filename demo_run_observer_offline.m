@@ -1,4 +1,4 @@
-% Example of off-line estimation
+%% Example of off-line estimation
 
 % -----------------------------------------------------------------------------
 % This file is part of MBDE-MATLAB.  See: https://github.com/MBDS/mbde-matlab
@@ -17,109 +17,186 @@
 %     along with MBDE-MATLAB.  If not, see <http://www.gnu.org/licenses/>.
 % -----------------------------------------------------------------------------
 
-clear; close all; clear all;
+clear;
+close all;% clear all;
 
 addpath('toolbox_mbe');
-% 1) Select the estimator: 
-% ---------------------------------
-estim = mbeEstimatorDEKF(); % DEKF
-% estim = mbeEstimatorIncrManifold(); % AKA errorEKF: by default, I3AL MB formulation with trapezoidal rule integration
-% estim = mbeEstimatorIncrManifold(); estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR();estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal; % errorEKF with matrix R formulation and trapezoidal rule intergation
-% estim = mbeEstimatorDIEKFacc();
-% estim = mbeEstimatorUKF(); % UKF with trapezoidal rule integration
-% estim = mbeEstimatorUKF(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intEuler; % UKF with forward Euler integrator
-% estim = mbeEstimatorCEKF(); % CEKF with forward Euler integration for covariance matrix of the estimation error
-% estim = mbeEstimatorCEKF_TR(); % CEKF with trapezoidal rule integration for covariance matrix of the estimation error
-% estim = mbeEstimatorDIEKF_pm(); % Method with "perfect measurements"
-% estim = mbeEstimatorSCKF(); % Smoothly constrained Kalman filter
 
-% estim = mbeEstimatorBatchMRF(); % Not an observer, but a batch smoother
+%% 1) Select the estimator: 
+% ---------------------------------
+% estim = mbeEstimatorDEKF();
+% estim = mbeEstimatorIncrManifold_full_jac(); % AKA errorEKF_EJ
+% estim = mbeEstimatorIncrManifold_full_jac();estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal;
+% estim = mbeEstimatorIncrManifold(); % AKA errorEKF
+% estim = mbeEstimatorIncrManifold(); estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal;
+estim = mbeEstimatorIncrManifold_ace_full_jac(); % AKA errorEKF_FE
+% estim = mbeEstimatorIncrManifold_ace_full_jac(); estim.dynamics_formulation_and_integrator = mbeDynFormulationMatrixR(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intTrapezoidal;
+% estim = mbeEstimatorDIEKFacc();
+% estim = mbeEstimatorUKF();
+% estim = mbeEstimatorUKF(); estim.dynamics_formulation_and_integrator.integrator_type = mbeIntegratorTypes.intEuler;
+% estim = mbeEstimatorCEKF();
+% estim = mbeEstimatorDIEKF_pm(); 
+% estim = mbeEstimatorBatchMRF();   
+% estim = mbeEstimatorDEKFprojections();
+% estim = mbeEstimatorSCKF();
+
 
 % Formulation for evaluating accelerations after each time step:
 %estim.post_iter_accel_solver = mbeDynFormulationMatrixR(); 
 %estim.post_iter_accel_solver = mbeDynFormulationLagrangeBaumgarte(); % Faster
 
-% 2) Pick multibody model and set of sensors:
+%% 2) Pick multibody model:
 % ---------------------------------
-if (1) % Normal behaviour is achieved with this condition set to 1. If this condition is chaged to 0, a file with experimental data must be provided
-    sen_noise = deg2rad(1);
-% Four-bar linkage:
-%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], sen_noise)}; % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], sen_noise)}; % Gyro in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 1],[3 4],[3 4], sen_noise)}; % Gyro in rocker link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-    estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(5, sen_noise)}; % Encoder pos sensor: See mbeSensorPosIndex(q_index, std_dev_noise)
-    
-% Five-bar linkage    
-%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], sen_noise),mbeSensorPosIndex(5, sen_noise)}; % Gyro in coupler and encoder in crank.
-%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(7, sen_noise) mbeSensorPosIndex(8, sen_noise)}; %Encoders in cranks
-%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], sen_noise) mbeSensorGyroscope([0 1],[5 6],[3 4], sen_noise)}; %Gyros in cranks
-%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], sen_noise) mbeSensorGyroscope([0 0],[3 4],[5 6], sen_noise)}; %Gyros in couplers
-    
-% 3) Select kind of error in modeling: 
-% -------------------------------------
-    estim.bad_model_errors.error_type = [1,2]; % 1=>Gravity error; 2=>Initial position error;  
-    estim.bad_model_errors.error_scale = 1; % Scale of the modeling error
-    
-        
-    % Estimator further params:
-    multiple_multirate = 1; % if multiple_multirate equals 0 or 1 => measurement every time step, if multiple multirate ==2 => measurements every 2 time steps, etc.
-    estim.dt       = 5e-3; % Time step of the simulations
+if (1) 
+    enc_std_noise = deg2rad(1); 
+    gyro_std_noise = 9.839439e-04; 
+    acc_std_noise = 5.637583e-02;
+%% mbeMechModelPendulum1    
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, [])}; % Accelerometer perpendicular. See mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, [])}; % Accelerometer parallel. See mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise*100,[2;0], pi/2, [])}; 
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[4;0], pi/2, [])}; 
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise)};
+%     estim.mech_phys_model = mbeMechModelPendulum1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise)}; 
+
+%% mbeMechModelFourBars1
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise)}; % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise)}; % Gyro in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 1],[3 4],[3 4], gyro_std_noise)}; % Gyro in rocker link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(5, enc_std_noise)}; % Encoder pos sensor: See mbeSensorPosIndex(q_index, std_dev_noise)
+    estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, [])};
+% %%%% Other possible sensor configurations for the four-bar linkage %%%
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(5, enc_std_noise),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, [])}; % Encoder pos sensor: See mbeSensorPosIndex(q_index, std_dev_noise)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, [])}; % Accelerometer in first link, axis parallel to the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, [])}; estim.sensors_std_magnification4filter = 2; % Accelerometer in first link, axis perpendicular to the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[4;0], pi/2, [])}; % Accelerometer in first link, axis perpendicular to the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], 0, [])}; estim.sensors_std_magnification4filter = [20;4]; % Accelerometer in first link, two axes. see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([0 1],[1 2],[1 2], acc_std_noise,[0;0], pi/2, []),mbeSensorAccelerometer([0 1],[1 2],[1 2], acc_std_noise,[0;0], 0, [])}; % Accelerometer in first link, two axes. see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], -pi/4, [])}; % Accelerometer in first link, axis at 45 deg wrt the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)    
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2+pi/10, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], -pi/2-pi/10, [])}; % Accelerometer in first link, axis at 45 deg wrt the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)    
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[2;0], pi/2, []),mbeSensorAccelerometer([1 0],[1 2],[1 2], acc_std_noise,[3;0], pi/2, [])}; % Accelerometer in first link, axis perpendicular to the bar: see mbeSensorAccelerometer(pt_is_fixed,pt1_idxs,pt2_idxs,noise_std, LCC, axisangle, gravity)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([0 0],[1 2],[3 4], acc_std_noise,[0;0],0, []),mbeSensorAccelerometer([0 0],[1 2],[3 4], acc_std_noise,[0;0],pi/2, [])}; % Accelerometer in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise),mbeSensorAccelerometer([0 1],[3 4],[3 4], sen_std_noise,[0;0], pi/2, [])}; % Accelerometer in rocker link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+%     estim.mech_phys_model = mbeMechModelFourBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise),mbeSensorPosIndex(5, enc_std_noise)}; % Gyro in coupler and encoder in crank.
+
+%% mbeMechModelFiveBars1
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(7, enc_std_noise) mbeSensorPosIndex(8, enc_std_noise)}; %Encoders in cranks
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise) mbeSensorGyroscope([0 1],[5 6],[3 4], gyro_std_noise)}; %Gyros in cranks
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise) mbeSensorGyroscope([0 0],[3 4],[5 6], gyro_std_noise)}; %Gyros in couplers
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([0 1],[1 2],[1 2], acc_std_noise,[0;0], pi/2, []), mbeSensorAccelerometer([0 1],[1 2],[1 2], acc_std_noise,[0;0], 0, []), mbeSensorAccelerometer([0 1],[5 6],[3 4], acc_std_noise,[0;0], pi/2, []),mbeSensorAccelerometer([0 1],[5 6],[3 4], acc_std_noise,[0;0], 0, [])}; estim.sensors_std_magnification4filter = [1;1;1;1]; %Accelerometers in cranks
+    % %%%% Other possible sensor configurations for the five-bar linkage %%%
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise)}; %Gyros in first crank
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise) }; %Gyros in first coupler
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([0 0],[3 4],[5 6], gyro_std_noise)}; %Gyros in second coupler
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(7, enc_std_noise) mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise) }; %Encoder first crank, Gyros in first coupler
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorGyroscope([1 0],[1 2],[1 2], gyro_std_noise) mbeSensorGyroscope([0 0],[1 2],[3 4], gyro_std_noise)}; %Gyros in first crank, gyro in first coupler
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorPosIndex(7, enc_std_noise)}; %Enoder in first link
+%     estim.mech_phys_model = mbeMechModelFiveBars1(); estim.mech_phys_model.installed_sensors =  {mbeSensorAccelerometer([0 1],[1 2],[1 2], acc_std_noise,[0;0], 0, []) mbeSensorAccelerometer([0 1],[5 6],[3 4], acc_std_noise,[0;0], 0, [])}; %Accelerometers in cranks
+
+
+%% Bad model errors
+    estim.bad_model_errors.error_type = [1,2]; % 1=>Gravity error; 2=>Initial pos; 6=>Bar length error; 7=> Mass error, 8=> constant torque error
+    estim.bad_model_errors.error_scale = 1; %0.5*2*2;
+         
+%%  Estimator further params:
+    multiple_multirate = 1; % if multiple_multirate == 0 => measurement every time step
+    estim.dt       = 5e-3;
     estim.mechanism_type.multirate_sensor_period = estim.dt*multiple_multirate; 
-    estim.end_time = 10; % Simulation time
-    % Set initial covariance matrix and plant covariance matrix (Some of
-    % these values might have to be changed depending on the set of
-    % sensors, the mechanism, the modeling error, the observer formulation, etc).
-    estim.transitionNoise_Z = 0; 
-    estim.transitionNoise_Zp = 0;
+    estim.end_time = 10; 
+
+%% Four-bar noise 
     if isa(estim.mech_phys_model,'mbeMechModelFourBars1')
-        if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')
-            estim.transitionNoise_Zpp = deg2rad(3.5);
-            estim.initVar_Z = 1.3e-4;
-            estim.initVar_Zp = 1.3e-2;
+        if isa(estim,'mbeEstimatorCEKF')
+             estim.transitionNoise_Zp = 0;
+             estim.transitionNoise_Zpp = (deg2rad(100))*0.035*1;%*0.4;
+             estim.initVar_Z = 1.3e-4;
+             estim.initVar_Zp = 1.3e-2;
+%              estim.initVar_Z = 0.00018225;
+%              estim.initVar_Zp = 0.00297;
         elseif isa(estim,'mbeEstimatorDIEKF_pm')
-            estim.transitionNoise_Zpp = deg2rad(350);
+            estim.transitionNoise_Z = (deg2rad(1))*0;
+            estim.transitionNoise_Zp = (deg2rad(10))*0;
+            estim.transitionNoise_Zpp = (deg2rad(3.5))*100;%Errorscale 1, encoders
+%             estim.transitionNoise_Zpp = (deg2rad(3.5))*100;%Errorscale 1, encoders
         elseif isa(estim,'mbeEstimatorSCKF')
-            estim.transitionNoise_Zpp = deg2rad(525);
+            estim.transitionNoise_Z = (deg2rad(1))*0;
+            estim.transitionNoise_Zp = (deg2rad(10))*0;
+            estim.transitionNoise_Zpp = (deg2rad(3.5))*150;%*0.4;
+        elseif isa(estim, 'mbeEstimatorIncrManifold_ace_full_jac')
+            estim.transitionNoise_Z = 0; 
+            estim.transitionNoise_Zp = 0; 
+            estim.transitionNoise_Zpp = degtorad(3.5*1.5)/40;
         elseif ~isa(estim, 'mbeEstimatorBatchMRF')
-            estim.transitionNoise_Zpp = deg2rad(5.25);
+            estim.transitionNoise_Z = (deg2rad(1))*0.1*0; %*0.1*0.2;
+    %         estim.transitionNoise_Zp = (deg2rad(100));
+            estim.transitionNoise_Zp = (deg2rad(10))*0.000005*0.9*0; %*0.2; %*0.1*0.5;
+            estim.transitionNoise_Zpp = (deg2rad(100))*0.0035*15;%*0.4;
+       
+
         end
     end
-    
+%% Five-bar noise
     if isa(estim.mech_phys_model,'mbeMechModelFiveBars1')
-        if estim.bad_model_errors.error_scale==1
-            if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')
-                % Select one of the following if using CEKF or CEKF_TR
-                estim.transitionNoise_Zpp = deg2rad(87.5); % Noise with encoders
-%                 estim.transitionNoise_Zpp = deg2rad(5.25); % Noise with gyros
+        estim.transitionNoise_Z = 0; %*0.1*0.2;
+        estim.transitionNoise_Zp = 0; %*0.2; %*0.1*0.5;
+            if isa(estim,'mbeEstimatorCEKF')
+                estim.transitionNoise_Zpp = (deg2rad(100))*0.035*65;%*0.4;
+                estim.transitionNoise_Zpp = (deg2rad(100))*0.035*4*0.01;%*0.4;
+                estim.transitionNoise_Zpp = (deg2rad(100))*0.035*25;%*0.4; % Noise with encoders
+                estim.transitionNoise_Zpp = (deg2rad(100))*0.035*1.5;%*0.4; % Noise with gyros
                 estim.initVar_Z = 1.3e-5;
                 estim.initVar_Zp = 1.3e-3;
+%                 estim.initVar_Z = 1.3e-4;
+%                 estim.initVar_Zp = 1.3e-3;
+%              estim.initVar_Z = 1.3e-4;
+%              estim.initVar_Zp = 1.3e-2;
+
             elseif isa(estim,'mbeEstimatorSCKF')
-                estim.transitionNoise_Zpp = deg2rad(875);
+                estim.transitionNoise_Zpp = (deg2rad(3.5))*250;%*0.4;
+            elseif isa(estim, 'mbeEstimatorIncrManifold_ace_full_jac')
+                estim.transitionNoise_Zpp = (deg2rad(3.5))*9/5; %/5e-3;%*0.4;
             else
-                estim.transitionNoise_Zpp = deg2rad(31.5);
-            end
-        elseif estim.bad_model_errors.error_scale==0.5
-            if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')
-                % Select one of the following if using CEKF or CEKF_TR
-                estim.transitionNoise_Zpp = deg2rad(35); % Noise wiht encoders
-%                 estim.transitionNoise_Zpp = deg2rad(3.5);% Noise with gyros
-                estim.initVar_Z = 1.3e-5;
-                estim.initVar_Zp = 1.3e-3;
-            elseif isa(estim,'mbeEstimatorSCKF')
-                estim.transitionNoise_Zpp = deg2rad(35);
-            else
-                estim.transitionNoise_Zpp = deg2rad(17.5);
-            end
-        else
-            warning('Noises have not been adjusted for estim.bad_model_errors.error_scale values othr than 0.5 or 1')
-            pause; 
-        end
-        
+%                 estim.transitionNoise_Zpp = (deg2rad(100))*0.035*15;%*0.4;
+                estim.transitionNoise_Zpp = (deg2rad(3.5))*9;%*0.4;
+            end      
         
     end
-   
+%% Pendulum noise
+if isa(estim.mech_phys_model,'mbeMechModelPendulum1')
+    if isa(estim,'mbeEstimatorCEKF')||isa(estim,'mbeEstimatorCEKF_TR')||isa(estim,'mbeEstimatorCEKF_SR')
+% % %         estim.transitionNoise_Zp = 0;
+% % %         %             estim.transitionNoise_Zpp = (deg2rad(10000*estim.dt))*0;
+% % %         %             estim.transitionNoise_Zpp = (deg2rad(100))*sqrt(multiple_multirate)*0.035*1000;%*0.4;
+% % %         estim.transitionNoise_Zpp = (deg2rad(100))*0.035*1;%*0.4;
+% % %         estim.initVar_Z = 1.3e-4;
+% % %         estim.initVar_Zp = 1.3e-2;
+% % %         %              estim.initVar_Z = 0.00018225;
+% % %         %              estim.initVar_Zp = 0.00297;
+    elseif isa(estim,'mbeEstimatorDIEKF_pm')
+% %         estim.transitionNoise_Z = (deg2rad(1))*0;
+% %         estim.transitionNoise_Zp = (deg2rad(10))*0;
+% %         estim.transitionNoise_Zpp = (deg2rad(3.5))*100;%Errorscale 1, encoders
+% %         %             estim.transitionNoise_Zpp = (deg2rad(3.5))*100;%Errorscale 1, encoders
+    elseif isa(estim,'mbeEstimatorSCKF')
+%         estim.transitionNoise_Z = (deg2rad(1))*0;
+%         estim.transitionNoise_Zp = (deg2rad(10))*0;
+%         estim.transitionNoise_Zpp = (deg2rad(3.5))*150;%*0.4;
+    elseif isa(estim, 'mbeEstimatorIncrManifold_ace')
+%         estim.transitionNoise_Z = 0; %*0.1*0.2;
+%         estim.transitionNoise_Zp = 0; %*0.2; %*0.1*0.5;
+%         estim.transitionNoise_Zpp = (deg2rad(100))*0.035;%*0.4;
+%         %             estim.initVar_Zpp = (deg2rad(30))^2;
+%         %             estim.initVar_Z = (deg2rad(1))^2;
+    elseif isa(estim, 'mbeEstimatorIncrManifold_ace_full_jac') || isa(estim, 'mbeEstimatorerrorUKFace') || isa(estim, 'mbeEstimatorUKFace')
+%         estim.transitionNoise_Z = 0; %*0.1*0.2;
+%         estim.transitionNoise_Zp = 0; %*0.2; %*0.1*0.5;
+%         estim.transitionNoise_Zpp = (deg2rad(100))*0.035*0.01; %*1000;%*0.1*0.01;
+%         estim.initVar_Zpp = (deg2rad(30))^2;
+%         estim.initVar_Z = (deg2rad(10))^2;
+    end
+end
 else
-    % Real mechanism. Load dataset as ground-truth:
+    %% Real mechanism. Load dataset as ground-truth:
     % estim.dt       = 20e-3;
     estim.end_time = 20;
     
@@ -133,14 +210,35 @@ else
     estim.SIGMAr = deg2rad(.1)*0;  % Transition noise in "zp" (assumed by the estimator)
     estim.SIGMAa = deg2rad(100);  % Transition noise in "zpp" (assumed by the estimator)
 end
-
+%% Some other unused options
 
 % Select dynamics formulation for simulating GT/Bad model:
-estim.mechanism_type.dynamic_formulation = mbeDynFormulationMatrixR();
+%estim.mechanism_type.dynamic_formulation = mbeDynFormulationMatrixR();
 
-% 4) Launch filter offline estimation:
+% Enable simulating "multirate sensors": set this to the period
+% between sensor data (e.g. 1.0/f for f in Hz). Leave to 0
+% (default) to simulate sensor data at every time step:
+%estim.mechanism_type.multirate_sensor_period = 1.0/ 5;
+
+
+% Change default installed sensors:
+% List of installed sensors (cell of objects derived from mbeSensorBase)
+%estim.mech_phys_model.installed_sensors = { ...
+%        mbeSensorPosIndex(5, deg2rad(0.5)), ...  % mbeSensorPosIndex(qp_index, std_dev_noise)
+%    };
+
+% 3) Select kind of error in modeling: 
+% -------------------------------------
+%estim.bad_model_errors.error_type = 2; 
+%estim.bad_model_errors.error_scale = 1; 
+
+%% 4) Launch filter offline estimation:
 % ------------------------------------
-rng(10);
+rng(10); % Fixes the seed for the pseudorandom noise (all the tests use the same pseudorandom sequence).
+estim.mech_phys_model.zp_init = 0*ones(size(estim.mech_phys_model.zp_init)); % Set initial velocities
+Qconst_val = 0; 
+Qconst = zeros(estim.mech_phys_model.dep_coords_count,1);
+Qconst(estim.mech_phys_model.get_indep_indxs) = Qconst_val; 
+estim.mech_phys_model = estim.mech_phys_model.set_Qconst(Qconst); % Set constant forces (or torques) applied to the DOFs
+estim.debug_show_live_filter_anim_fps = 10; % Frames per second for the animation
 estim.run_offline(); 
-
-

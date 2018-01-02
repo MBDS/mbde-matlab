@@ -107,7 +107,7 @@ classdef mbeKinematicsSolver
         function [dotR] = calc_dotR_matrix(model,q,qp,R)
             % Builds the $\dot{R}$ matrix, as the product of the hypermatrix dR_dq times qp.
             % Computes the hypermatrix $\frac{\partial R}{\partial q}$, with Rq(:,:,k) the partial derivative of R(q) wrt q(k)
-            Rq = model.jacob_Rq(q,R);
+            Rq(:,:,:) = model.jacob_Rq(q,R);
             dotR= zeros(size(R,1),size(R,2));
             for k=1:model.dep_coords_count,
                 dotR=dotR + Rq(:,:,k)*qp(k);

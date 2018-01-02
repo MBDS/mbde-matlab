@@ -44,9 +44,12 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
     end
     
     % (Abstract) Read-only properties of the model
-    properties(GetAccess=public,SetAccess=public)
+    properties(GetAccess=public,SetAccess=protected)
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelFiveBarsBase.dep_coords_count,1);
+        % Generalized vector of constant forces.
+        Qconst=zeros(mbeMechModelFiveBarsBase.dep_coords_count,1);
+        
         
     end
     
@@ -71,6 +74,10 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
         
         % Force vector (gravity forces only):
         Qg;
+        
+        % Force vector: generalized forces vector calculated from estimated
+        % input forces
+        Qm = zeros(mbeMechModelFiveBarsBase.dep_coords_count,1); 
     end
     
     methods 
@@ -85,18 +92,16 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
         function val = phi(me,q)
             x1 = q(1) ;y1 = q(2); x2 = q(3); y2 = q(4); x3 = q(5); y3 = q(6); ang1 = q(7); ang2 = q(8);
             LA1 = me.bar_lengths(1); L12 = me.bar_lengths(2); L23 = me.bar_lengths(3); L3B = me.bar_lengths(4);
-            val = [ (me.xA-x1)^2 + (me.yA-y1)^2 - LA1^2;...
-                    (x1-x2)^2 + (y1-y2)^2 - L12^2; ...
-                    (x2-x3)^2 + (y2-y3)^2 - L23^2; ...
-                    (me.xB-x3)^2 + (me.yB-y3)^2 - L3B^2;...
+            val = [ (me.xA-x1)^2 + (me.yA-y1)^2 - LA1^2;
+                    (x1-x2)^2 + (y1-y2)^2 - L12^2; 
+                    (x2-x3)^2 + (y2-y3)^2 - L23^2; 
+                    (me.xB-x3)^2 + (me.yB-y3)^2 - L3B^2;
                   mbe_iff(abs(sin(ang1)) > 0.7,... 
                     x1-me.xA-LA1*cos(ang1), ...
-                    y1-me.yA-LA1*sin(ang1)  ...
-                    );
+                    y1-me.yA-LA1*sin(ang1));
                   mbe_iff(abs(sin(ang2)) > 0.7,... 
                     x3-me.xB-L3B*cos(ang2), ...
-                    y3-me.yB-L3B*sin(ang2) ...
-                    ) ...
+                    y3-me.yB-L3B*sin(ang2));
                 ];
         end % of phi()
         
@@ -114,17 +119,93 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
                             [0,             1,          0,          0,            0,            0,-LA1*cos(ang1),             0] );
                   mbe_iff(abs(sin(ang2)) > 0.7,... 
                             [0,             0,          0,          0,            1,            0,             0, L3B*sin(ang2)],...
-                            [0,             0,          0,          0,            0,            1,             0,-L3B*cos(ang2)] )...
+                            [0,             0,          0,          0,            0,            1,             0,-L3B*cos(ang2)] )
                     ];
                        
         end % jacob_phi_q()
-
-        % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
-        function phiqpqp = jacob_phiqp_times_qp(me,q,qp)
+        
+        % Computes the Jacobian $\Phi_{qq} (it is a hypermatrix)$
+        function phiqq = eval_phi_q_q(me,q)
+            % x1 = q(1) ;y1 = q(2); x2 = q(3); y2 = q(4); x3 = q(5); y3 = q(6); 
+            ang1 = q(7); ang2 = q(8);
+            LA1 = me.bar_lengths(1); L3B = me.bar_lengths(4);
+            phiqq = zeros(6,8,8);
+            phiqq(:,:,1) = [...
+                2,  0,  0,  0,  0,  0,  0,  0;
+                2,  0, -2,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,2) = [...
+                0,  2,  0,  0,  0,  0,  0,  0;
+                0,  2,  0, -2,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,3) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+               -2,  0,  2,  0,  0,  0,  0,  0;
+                0,  0,  2,  0, -2,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,4) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0, -2,  0,  2,  0,  0,  0,  0;
+                0,  0,  0,  2,  0, -2,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,5) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0, -2,  0,  2,  0,  0,  0;
+                0,  0,  0,  0,  2,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,6) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0, -2,  0,  2,  0,  0;
+                0,  0,  0,  0,  0,  2,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,7) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                mbe_iff(abs(sin(ang1)) > 0.7,... 
+                    [0,  0,  0,  0,  0,  0, LA1*cos(ang1),  0],...
+                    [0,  0,  0,  0,  0,  0, LA1*sin(ang1),  0] );
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqq(:,:,8) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                mbe_iff(abs(sin(ang2)) > 0.7,... 
+                    [0,  0,  0,  0,  0,  0,  0, L3B*cos(ang2)],...
+                    [0,  0,  0,  0,  0,  0,  0, L3B*sin(ang2)] );
+                ];
+        end % eval_phi_q_q
+        
+        % Computes the time derivative of the Jacobian $\dot{\Phi_q}$
+        function phiqp = eval_phiqp(me,q,qp)
             ang1 = q(7); ang2 = q(8);
             x1p = qp(1) ;y1p = qp(2); x2p = qp(3); y2p = qp(4); x3p = qp(5); y3p = qp(6); ang1p = qp(7); ang2p = qp(8);
             LA1 = me.bar_lengths(1); L3B = me.bar_lengths(4);
-            dotphiq = [...
+            phiqp = [...
                      2*x1p,       2*y1p,            0,            0,            0,            0,             0,             0; 
                2*(x1p-x2p), 2*(y1p-y2p), -2*(x1p-x2p), -2*(y1p-y2p),            0,            0,             0,             0;
                          0,           0,  2*(x2p-x3p),  2*(y2p-y3p), -2*(x2p-x3p), -2*(y2p-y3p),             0,             0;
@@ -136,7 +217,40 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
                          [0,           0,            0,            0,            0,            0,             0, L3B*cos(ang2)*ang2p],...
                          [0,           0,            0,            0,            0,            0,             0, L3B*sin(ang2)*ang2p])... 
                      ];
-                     
+        end % eval_phiqp
+        
+        % Computes hypermatrix  $\dot{\Phi_q}_q$
+        function phiqp_q = eval_phiqp_q(me,q,qp)
+            ang1 = q(7); ang2 = q(8);
+%             x1p = qp(1) ;y1p = qp(2); x2p = qp(3); y2p = qp(4); x3p = qp(5); y3p = qp(6); 
+            ang1p = qp(7); ang2p = qp(8);
+            LA1 = me.bar_lengths(1); L3B = me.bar_lengths(4);
+            phiqp_q = zeros(6,8,8);
+            phiqp_q(:,:,7) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                mbe_iff(abs(sin(ang1)) > 0.7,... 
+                    [0,  0,  0,  0,  0,  0, -LA1*sin(ang1)*ang1p,  0],...
+                    [0,  0,  0,  0,  0,  0,  LA1*cos(ang1)*ang1p,  0]); 
+                0,  0,  0,  0,  0,  0,  0,  0;
+                ];
+            phiqp_q(:,:,8) = [...
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0,  0,  0,  0;
+                mbe_iff(abs(sin(ang2)) > 0.7,... 
+                    [0,  0,  0,  0,  0,  0,  0, -L3B*sin(ang2)*ang2p],...
+                    [0,  0,  0,  0,  0,  0,  0,  L3B*cos(ang2)*ang2p]); 
+                ];
+        end % eval_phiqp_q
+        
+        % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
+        function phiqpqp = jacob_phiqp_times_qp(me,q,qp)
+            dotphiq = eval_phiqp(me,q,qp);        
             phiqpqp = dotphiq * qp;
         end % jacob_phiqp_times_qp
         
@@ -253,8 +367,16 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
         % Evaluates the instantaneous forces
         function Q = eval_forces(me,q,qp)
             %Q_var = zeros(me.dep_coords_count,1);
-            Q = me.Qg; %+Q_var;
+%             Q = me.Qg+me.Qm; %+Q_var;
+            Q = me.Qg+me.Qconst+me.Qm; %+Q_var
         end % eval_forces
+        
+        % sets the value of the constant forces to be applied during all the
+        % simulation
+        function [estim_wQcnst] = set_Qconst(me, Q_constant)
+            estim_wQcnst = me; 
+            estim_wQcnst.Qconst = Q_constant;
+        end % end of set_Qconst
 
         % Evaluates the stiffness & damping matrices of the system:
         function [K, C] = eval_KC(me, q,dq)
@@ -295,6 +417,8 @@ classdef mbeMechModelFiveBarsBase < mbeMechModelBase
                         bad_model.bar_lengths(1) = bad_model.bar_lengths(1)*(100+error_def.error_scale)/100; % Lenght error in bar 1 (error_scale are 1 % of lenght error)
                     case 7 
                         bad_model.mA1 = bad_model.mA1*(100+10*error_def.error_scale)/100;% Mass error in bar 1(error_scale usits are 10% of mass error)
+                    case 8
+                        bad_model = bad_model.set_Qconst(bad_model.Qconst*0);
                     otherwise
                         error('Unhandled value!');
                 end

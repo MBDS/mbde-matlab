@@ -23,14 +23,9 @@ classdef mbeMechModelFourBars3 < mbeMechModelFourBarsBase
     properties(Access=public)
         % List of installed sensors (cell of objects derived from mbeSensorBase)
         installed_sensors = { ...
-%            	mbeSensorPosIndex(5, deg2rad(1)) ...  % Encoder pos sensor: See mbeSensorPosIndex(q_index, std_dev_noise)
-                mbeSensorGyroscope([1 0],[1 2],[1 2], 0)... % Gyro in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-                mbeSensorGyroscope([0 0],[1 2],[3 4], 0)... % Gyro in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-                mbeSensorGyroscope([0 1],[3 4],[3 4], 0)... % Gyro in third link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-                mbeSensorAngle([1 0],[1 2],[1 2], 0)... % Gyro (Angular position) in first link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
-                mbeSensorAngle([0 0],[1 2],[3 4], 0)... % Gyro (Angular position) in coupler link: See mbeSensorAngle(is_fixed,idxs1,idxs2,noise_std)
-                mbeSensorAngle([0 1],[3 4],[3 4], 0)... % Gyro (Angular position) in third link: See mbeSensorAngle(is_fixed,idxs1,idxs2,noise_std)
-            };    
+                mbeSensorGyroscope([0 0],[1 2],[3 4], deg2rad(0.5))... % Gyro in coupler link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)
+                mbeSensorGyroscope([0 1],[3 4],[3 4], deg2rad(0.5)) % Gyro in third link: See mbeSensorGyroscope(is_fixed,idxs1,idxs2,noise_std)                                
+            };
     end
    
     methods 
@@ -39,7 +34,7 @@ classdef mbeMechModelFourBars3 < mbeMechModelFourBarsBase
             % M A Q U E T A SIMPLIFICADA (SOLO 5 COORD)
             x1 = .120; y1= 0; x2 = .540; y2 = .338; theta = 0;             
             me.q_init_approx = [x1, y1, x2, y2, theta]'; % Initial approximated position
-            me.zp_init = 1; % Initial DOF velocity
+            me.zp_init = 0; % Initial DOF velocity
             % gravity
             me.g = -9.80665;
 

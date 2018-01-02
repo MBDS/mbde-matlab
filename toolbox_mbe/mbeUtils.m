@@ -164,6 +164,51 @@ classdef mbeUtils
 
         end % sigma_sampling_mean_and_cov()
         
+        function Mout = mat3mat2 (M3d, M2d)
+            % Multiplication of a 3d tensor (M3d) by a matrix (M2d), as in 
+            % D. Dopico et al., Direct and Adjoint 
+            % Sensitivity Analysis of Ordinary Differential Equation 
+            % Multibody Formulations, Journal of Computational and 
+            % Nonlinear Dynamics, vol 10, 2014 
+            s3d = [size(M3d),1]; % The trailing 1 avoids errors when the last dimension of the array is of size 1.
+            s2d = size(M2d);
+%             assert(length(s3d)==3 & length(s2d)==2);
+            Mout= zeros(s3d(1),s2d(2),s3d(3));
+            for i = 1:s3d(3)
+                Mout(:,:,i) = M3d(:,:,i)*M2d;
+            end
+        end % matmul3d
+        
+        function Mout = mat2mat3 (M2d, M3d)
+            % Multiplication of a 3d tensor (M3d) by a matrix (M2d), as in 
+            % D. Dopico et al., Direct and Adjoint 
+            % Sensitivity Analysis of Ordinary Differential Equation 
+            % Multibody Formulations, Journal of Computational and 
+            % Nonlinear Dynamics, vol 10, 2014 
+            s3d = [size(M3d),1]; % The trailing 1 avoids errors when the last dimension of the array is of size 1.
+            s2d = size(M2d);
+%             assert(length(s3d)==3 & length(s2d)==2);
+            Mout= zeros(s2d(1),s3d(2),s3d(3));
+            for i = 1:s3d(3)
+                Mout(:,:,i) = M2d * M3d(:,:,i);
+            end
+        end % matmul3d
+        
+        function Mout = mat3vec (M3d, vec)
+            % Multiplication of a 3d tensor (M3d) by a vector (vec) as in 
+            % D. Dopico et al., Direct and Adjoint 
+            % Sensitivity Analysis of Ordinary Differential Equation 
+            % Multibody Formulations, Journal of Computational and 
+            % Nonlinear Dynamics, vol 10, 2014 
+            s3d = [size(M3d),1]; % The trailing 1 avoids errors when the last dimension of the array is of size 1.
+            
+%             assert(length(s3d)==3 & length(svec)==2 & min(svec)==1);
+            Mout= zeros(s3d(1),s3d(3));
+            for i = 1:s3d(3)
+                Mout(:,i) = M3d(:,:,i)*vec;
+            end
+        end % matvec3d
+        
         
     end % end methods()
     

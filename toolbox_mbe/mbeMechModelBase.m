@@ -37,10 +37,13 @@ classdef (Abstract) mbeMechModelBase
         fixed_points;
         
         % Initial velocity for independent coords
-        zp_init;       
+        zp_init; 
+        
+        % Global mass matrix
+        M;
     end    
     % Read-only properties of the model
-    properties(Abstract,GetAccess=public,SetAccess=public)
+    properties(Abstract,GetAccess=public,SetAccess=protected)
         % Initial, approximate position (dep coords) vector
         q_init_approx;
         
@@ -53,8 +56,16 @@ classdef (Abstract) mbeMechModelBase
         val = phi(me,q);
         % Computes the Jacobian $\Phi_q$
         phiq = jacob_phi_q(me,q);
+        % Computes the Jacobian $\Phi_{qq}$ (it is a hypermatrix)
+        phiqq = eval_phi_q_q(me,q);
+        % Computes the product $\Phi_{qq} \dot{q}$
+%         phiqq_qp = eval_phiqq_qp(me,q, qp)
+        % Computes the time derivative of the Jacobian $\dot{Phi_q}$
+        phiqp = eval_phiqp(me,q,qp);
         % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
         phiqpqp = jacob_phiqp_times_qp(me,q,qp);
+        % Computes hypermatrix  $\dot{\Phi_q}_q$
+        phiqp_q = eval_phiqp_q(me,q,qp);
         % Computes the hypermatrix $\frac{\partial R}{\partial q}$, with Rq(:,:,k) the partial derivative of R(q) wrt q(k)
         Rq = jacob_Rq(me,q,R);
         % Evaluates the instantaneous forces
@@ -63,6 +74,8 @@ classdef (Abstract) mbeMechModelBase
         V = eval_potential_energy(me,q);
         % Evaluates the stiffness & damping matrices of the system:
         [K, C] = eval_KC(me,q,dq);
+        
+        
         
         % Returns a *copy* of "me" after applying the given model errors (of class mbeModelErrorDef)
         [bad_model] = applyErrors(me, error_def); 
@@ -90,6 +103,95 @@ classdef (Abstract) mbeMechModelBase
             idxs = 1:me.dep_coords_count; % [1,...,n]
             idxs(me.indep_idxs)=[]; % Remove those ones
         end
+        % Partial derivative of dependent velocity qp and acceleration qpp
+        % with respect to independent coordinates z and velocities zpp
+        function [dqp_dz, dqpp_dz, dqpp_dzp] = eval_dDepVelAcel_dzzp(me,q,qp,qpp)
+            idxs = me.get_indep_indxs();
+            ndof = length(idxs);
+            phiq = jacob_phi_q(me,q);
+            phiqq = eval_phi_q_q(me,q);
+            phiqq_qp = mbeUtils.mat3vec(phiqq,qp);
+            phiqp = eval_phiqp(me,q,qp);
+            [nrow,ncol] = size(phiq);
+            B = zeros(ncol-nrow,ncol);
+            for i = 1:ndof
+                B(i,idxs(i))=1;
+            end
+            S = [phiq;B]\[eye(nrow); zeros(ncol-nrow,nrow)];
+            R = mbeKinematicsSolver.calc_R_matrix(me,q);
+            c_q = - mbeUtils.mat3vec(me.eval_phiqp_q(q,qp),qp); % NOTE: if there are time-dependent constraints, the term -\dot{\Phi_t}_q should be added
+            c_qp = -phiqq_qp-phiqp; % NOTE: if there are time-dependent constraints, the term -\Phi_{tq} should be added
+            Sc = mbeKinematicsSolver.accel_problem(me,q,qp,zeros(ndof,1));
+            Sc_q = S*(-mbeUtils.mat3vec(phiqq, Sc)+c_q);
+            Rz = zeros(ncol,ndof, ndof);
+            for i = 1:ndof
+                for j = 1:ncol
+                    Rz(:,:,i) = Rz(:,:,i) - S*phiqq(:,:,j)*R*R(j,i); 
+                end
+            end
+            zpp = qpp(idxs);
+            
+            dqp_dz   = -S*phiqp*R;
+            dqpp_dz  = mbeUtils.mat3vec(Rz,zpp) + Sc_q*R + S*c_qp*dqp_dz;
+            dqpp_dzp = S*c_qp*R;
+            
+        end
+        
+        % Partial derivative of independent accelerations wrt independent
+        % velocities
+        function [zpp_z,zpp_zp] = eval_dzpp_dposvel(me,q,qp)
+            % Provides the partial derivative of the independent
+            % acceleration with respect to the independent positions
+            % (zpp_z) and the partial derivative of accelerations with
+            % respect to independent velocities (zpp_zp)
+            % For further details, see the paper
+            % D. Dopico et al., Direct and Adjoint 
+            % Sensitivity Analysis of Ordinary Differential Equation 
+            % Multibody Formulations, Journal of Computational and 
+            % Nonlinear Dynamics, vol 10, 2014 
+            R=mbeKinematicsSolver.calc_R_matrix(me,q);
+            [K,C] = eval_KC(me,q,qp);
+            phiq = jacob_phi_q(me,q);
+            phiqq = eval_phi_q_q(me,q);
+            phiqq_qp = mbeUtils.mat3vec(phiqq,qp);
+            phiqp = eval_phiqp(me,q,qp);
+            [nrow,ncol] = size(phiq);
+            B = zeros(ncol-nrow,ncol);
+            idxs = me.get_indep_indxs();
+            ndof = length(idxs);
+            for i = 1:ndof
+                B(i,idxs(i))=1;
+            end
+            S = [phiq;B]\[eye(nrow); zeros(ncol-nrow,nrow)];
+            c_qp = -phiqq_qp-phiqp; % NOTE: if there are time-dependent constraints, the term -\Phi_{tq} should be added
+            Qbar_qp = -R'*(C + me.M *S*c_qp);
+            C_bar = -Qbar_qp*R;
+            M_bar = R'*me.M*R;
+            Sc = mbeKinematicsSolver.accel_problem(me,q,qp,zeros(ndof,1));
+            Q = me.eval_forces(q,qp);
+            Q_bar = R'*(Q-me.M*Sc);
+            invMbar = inv(M_bar);
+            zpp_zp = -invMbar*C_bar;     
+            Rz = zeros(ncol,ndof, ndof);
+            for i = 1:ndof
+                for j = 1:ncol
+                    Rz(:,:,i) = Rz(:,:,i) - S*phiqq(:,:,j)*R*R(j,i); 
+                end
+            end
+            c_q = - mbeUtils.mat3vec(me.eval_phiqp_q(q,qp),qp); % NOTE: if there are time-dependent constraints, the term -\dot{\Phi_t}_q should be added
+            Sc_q = S*(-mbeUtils.mat3vec(phiqq, Sc)+c_q);
+            Rqt = -mbeUtils.mat2mat3(R',mbeUtils.mat3mat2(permute(phiqq,[2,1,3]),S'));
+            Qbar_q = mbeUtils.mat3vec(Rqt,Q-me.M*Sc)-R'*(K+me.M*Sc_q);
+            K_bar = -(Qbar_q-Qbar_qp*S*phiqp)*R; 
+            zpp_z = -invMbar* mbeUtils.mat3vec((mbeUtils.mat3mat2(permute(Rz,[2,1,3]),me.M*R)+mbeUtils.mat2mat3(R'*me.M, Rz)),M_bar\Q_bar)...
+                -M_bar\K_bar;
+        end
+        
+%         % Partial derivative of independent accelerations wrt independent
+%         % coordinates
+%         function zpp_z = eval_dzpp_dz(me,q,qp)
+%            zpp_z = 0* eval_dzpp_dzp(me,q,qp);
+%         end
 
         % --- Start of sensors API ----
 
@@ -153,17 +255,19 @@ classdef (Abstract) mbeMechModelBase
             
             % dh_dz
             R=mbeKinematicsSolver.calc_R_matrix(me,q);
-            Rq = me.jacob_Rq(q,R);
+%             Rq = me.jacob_Rq(q,R);
             [dh_dq , dh_dqp, dh_dqpp] = me.sensors_jacob(q,qp,qpp);
-            iindex = me.get_indep_indxs;
-            dh_dz = zeros(length(me.installed_sensors), length(iindex));
-            for i = 1:length(iindex)
-                dh_dz(:,i) = dh_dq*R(:,i) + dh_dqp*Rq(:,:,i)*R(:,i)*qp(iindex(i)) +dh_dqpp * Rq(:,:,i)*R(:,i)*qpp(iindex(i));
-            end
+            [dqp_dz, dqpp_dz, dqpp_dzp] = me.eval_dDepVelAcel_dzzp(q,qp,qpp);
+%             iindex = me.get_indep_indxs;
+%             dh_dz = zeros(length(me.installed_sensors), length(iindex));
+%             for i = 1:length(iindex)
+%                 dh_dz(:,i) = dh_dq*R(:,i) + dh_dqp*Rq(:,:,i)*R(:,i)*qp(iindex(i)) +dh_dqpp * Rq(:,:,i)*R(:,i)*qpp(iindex(i));
+%             end
+            dh_dz = dh_dq*R+dh_dqp*dqp_dz+dh_dqpp*dqpp_dz;
 			% TODO: Complete partial derivatives!
             
             % dh_dzp: TODO: Complete partial derivatives!
-            dh_dzp = dh_dqp *  R;
+            dh_dzp = dh_dqp *  R + dh_dqpp*dqpp_dzp;
             
             % dh_dzpp:
             dh_dzpp = dh_dqpp *  R;       
@@ -203,7 +307,10 @@ classdef (Abstract) mbeMechModelBase
                       0, m+a-2*bx,    by, bx-a; ...
                    bx-a,       by,     a,    0;...
                     -by,     bx-a,     0,    a ];
-        end 
+        end
+        
+        
+        
 
     end % end static methods
     

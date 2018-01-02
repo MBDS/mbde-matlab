@@ -67,6 +67,9 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
         % Covariance matrix (we assume all filters have one, so it's here)
         P = [];                
         Innovation = [];
+        
+        dzpp_dz = [];
+        dzpp_dzp = [];
     end
     
     % --- Handy vars set-up by methods in this base class for the convenience of derived classes ---
@@ -171,6 +174,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 [hist.Pidxs_z, hist.Pidxs_zp, hist.Pidxs_zpp ] = me.get_indices_in_P();
                 hist.sensor_data = cell(nTimeSteps,1); % cell: Variable number of readings in each timestep!
                 hist.estim_inn = cell(1,nTimeSteps);
+                hist.Qm = zeros(nTimeSteps, me.bad_mech_phys_model.dof_count);
             end
 
 
@@ -209,7 +213,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                     [~, def_pos]= chol(me.P); % Checking if P is possitive definite
                     if def_pos > 0
                         warning ('P is not positive definite!')
-                        pause
+%                         pause
                     end
                 end
                 
@@ -217,9 +221,9 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 if (i>=liveanim_last+liveanim_incr)
                     clf; hold on;
                     % Plot GT, BadModel, Estim
-                    me.bad_mech_phys_model.plot_model_skeleton(states_GT.q(i,:), 'r', 0);
-                    me.bad_mech_phys_model.plot_model_skeleton(states_BadModel.q(i,:), 'g:', 0);
-                    me.bad_mech_phys_model.plot_model_skeleton(me.q, 'b', 1); % the last 1=fit plot axes
+                    me.bad_mech_phys_model.plot_model_skeleton(states_GT.q(i,:), 'r.-', 0);
+                    me.bad_mech_phys_model.plot_model_skeleton(states_BadModel.q(i,:), 'g.-', 0);
+                    me.bad_mech_phys_model.plot_model_skeleton(me.q, 'b.-', 1); % the last 1=fit plot axes
                     % Title:
                     title('r=GT; g:=BadModel; b=Estim');
                     drawnow;
@@ -237,6 +241,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                     hist.P{i} = me.P;
                     hist.sensor_data{i} = obs;
                     hist.estim_inn{i} = me.Innovation;
+                    hist.Qm(i,:) = me.bad_mech_phys_model.Qm(me.bad_mech_phys_model.get_indep_indxs);
                 end
                 
             end % =====  end of for each time step ===== 
@@ -251,6 +256,7 @@ classdef (Abstract) mbeEstimatorFilterBase < mbeEstimatorBase
                 perfStats.states_GT = states_GT;
                 perfStats.states_BadModel = states_BadModel;                
                 perfStats.stats = me.plot_estim_performance(states_GT, states_BadModel,hist, me.show_benchmark_graphs);
+                save('perfstats','perfStats');
             end
 
         end % end run_offline() 

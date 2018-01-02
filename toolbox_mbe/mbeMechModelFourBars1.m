@@ -44,7 +44,7 @@ classdef mbeMechModelFourBars1 < mbeMechModelFourBarsBase
             me.q_init_approx = [x1, y1, x2, y2, theta]'; % Initial approximated position
             me.zp_init = 0; % Initial DOF velocity
             % gravity
-            me.g = -10;
+            me.g = -9.81;
 
             % Multibody model parameters
             % fixed points:

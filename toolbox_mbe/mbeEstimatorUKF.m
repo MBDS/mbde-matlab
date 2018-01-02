@@ -66,7 +66,10 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
                 me.initVar_Z*ones(1,me.lenZ), ...
                 me.initVar_Zp*ones(1,me.lenZ)]);
             
-            % Discrete covariance matrix of plant noise calculated from its continuous counterpart (Van Loan's method)
+%             me.CovPlantNoise = diag([...
+%                 ones(1,me.lenZ)*me.transitionNoise_Z*(me.dt), ...
+%                 ones(1,me.lenZ)*me.transitionNoise_Zp*(me.dt)]);
+
             ContinuousCovPlantNoise = diag([...
                 ones(1,me.lenZ)*me.transitionNoise_Zp, ...
                 ones(1,me.lenZ)*me.transitionNoise_Zpp]);
@@ -79,7 +82,7 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
             me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
             
             % Sensors noise model:
-            sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
+            sensors_stds = me.sensors_std_magnification4filter .* me.bad_mech_phys_model.sensors_std_noise();
             me.CovMeasurementNoise = diag(sensors_stds.^2);
         end
         
@@ -163,6 +166,43 @@ classdef mbeEstimatorUKF < mbeEstimatorFilterBase
                 P_plus = P_minus - K * Pyy*K';
             end
             
+%             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             %%%%%%%%%%%%%%%%%% test %%%%%%%%%%%%%%%%
+%             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             global data_saved
+%             % Typical params:
+%             alpha = 1e-3;
+%             k = 0;
+%             beta = 2; % Optimal for Gaussians
+%             lambda = alpha^2*(L+k)-L;
+%             
+%             % Weights:
+%             wm = zeros(Nsp,1);  % mean weights
+%             wm(1) = lambda / (L+lambda);
+%             wm(2:Nsp) = ones(Nsp-1,1) * 0.5/(L+lambda);
+%             
+%             % Notation according to Huang et al., An observability
+%             % constrained UKF for improving SLAM consistency
+%             Pyx_kk = zeros(L);
+%             Pxx_kk = zeros(L);
+%             Pzx_k1k = 0;
+%             P_k1_k = zeros(L);
+%             for i = 1:Nsp
+%                 Pyx_kk = Pyx_kk +   wm(i)*(X_minus_kp1(i,:)-X_minus)'*(X_k(i,:)-X');
+%                 Pxx_kk = Pxx_kk +   wm(i)*(X_k(i,:)-X')'*(X_k(i,:)-X');
+%                 Pzx_k1k = Pzx_k1k + (wm(i)*(Ys(i,:)-y_mean)'*(X_minus_kp1(i,:)-X_minus));
+%                 P_k1_k = P_k1_k +   wm(i)*(X_minus_kp1(i,:)-X_minus)'*(X_minus_kp1(i,:)-X_minus);
+%             end
+%             
+%             Phik_hat = Pyx_kk / Pxx_kk; % Ec 12 of the paper
+%             H_hat = Pzx_k1k/P_k1_k;
+%             
+%             
+%             data_saved.F = [data_saved.F,Phik_hat];
+%             data_saved.H = [data_saved.H,H_hat]; % it works only without multirate
+%             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             %%%%%%%%%%%%%%%% end test %%%%%%%%%%%%%%
+%             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             % MBS
             % Convert state vector "X" back to MBS coordinates "q":

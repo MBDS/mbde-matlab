@@ -49,7 +49,7 @@ classdef mbeMechModelRodArray1dof < mbeMechModelBase
         
     end
     % (Abstract) Read-only properties of the model
-    properties(GetAccess=public,SetAccess=public)
+    properties(GetAccess=public,SetAccess=protected)
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelRodArray1dof.dep_coords_count,1);
         

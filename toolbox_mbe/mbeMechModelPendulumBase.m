@@ -41,12 +41,14 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
         indep_idxs = 3;
     end
     % (Abstract) Read-only properties of the model
-    properties(GetAccess=public,SetAccess=public)
+    properties(GetAccess=public,SetAccess=protected)
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
         
-        % Initial velocity for independent coords
-        zp_init=[0];
+        % Generalized vector of constant forces.
+        Qconst=zeros(mbeMechModelPendulumBase.dep_coords_count,1);
+        
+        
     end
     
     % Model-specific properties:
@@ -58,7 +60,7 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
         xA,yA, fixed_points;
         
         % Gravity:
-        g = -10;
+        g = -9.81;
         
         % lengths:
         bar_lengths; 
@@ -69,8 +71,14 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
         % Force vector (gravity forces only):
         Qg;
         
+        % Force vector: generalized forces vector calculated from estimated
+        % input forces
+        Qm = zeros(mbeMechModelPendulumBase.dep_coords_count,1); 
+        
         % damping coefficient
         C = 0;
+        % Initial velocity for independent coords
+        zp_init=[0];
     end
     
     methods 
@@ -112,7 +120,7 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
 
         % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
         function phiqpqp = jacob_phiqp_times_qp(me,q,qp)
-            %x1 = q(1) ;y1 = q(2);x2 = q(3);y2 = q(4);
+            %x1 = q(1) ;y1 = q(2);
             theta = q(3);
             x1p = qp(1) ;y1p = qp(2); thetap = qp(3);
             LA1 = me.bar_lengths(1);
@@ -127,6 +135,63 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
             phiqpqp = dotphiq * qp;
         end % jacob_phiqp_times_qp
         
+        % Computes the Jacobian $\Phi_{qq} (it is a hypermatrix)$
+        function phiqq = eval_phi_q_q(me,q)
+            %x1 = q(1); y1 = q(2);
+            theta = q(3);
+            LA1 = me.bar_lengths(1);
+            phiqq = zeros(2,3,3);
+            phiqq(:,:,1) = [...
+                2, 0,  0;
+                0,  0,  0;...
+                ];
+            phiqq(:,:,2) =  [...
+                0,  2, 0;
+                0,  0,  0;...
+                ];
+            phiqq(:,:,3) =  [...
+                0,  0,  0;
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0, LA1*sin(theta)], ...
+                [0,             0,  LA1*cos(theta)] ...
+                ) ...
+                ];
+            
+        end % eval_phi_q_q
+        
+        % Computes the time derivative of the Jacobian $\dot{\Phi_q}$
+        function phiqp = eval_phiqp(me,q,qp)
+            %x1 = q(1) ;y1 = q(2);
+            theta = q(3);
+            x1p = qp(1) ;y1p = qp(2);thetap = qp(3);
+            LA1 = me.bar_lengths(1);
+            
+            phiqp = [...
+                2*x1p,        2*y1p,            0;
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0, LA1*sin(theta)*thetap ], ...
+                [0,             0, LA1*cos(theta)*thetap ]  ...
+                ) ...
+                ];
+        end % eval_phiqp
+        
+        % Computes hypermatrix  $\dot{\Phi_q}_q$
+        function phiqp_q = eval_phiqp_q(me,q,qp)
+            %x1 = q(1) ;y1 = q(2);
+            theta = q(3);
+            %x1p = qp(1) ;y1p = qp(2);
+            thetap = qp(3);
+            LA1 = me.bar_lengths(1);
+            phiqp_q = zeros(2,3,3);
+            phiqp_q(:,:,3) = [...
+                0, 0, 0;...
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0, LA1*cos(theta)*thetap ], ...
+                [0,             0, -LA1*sin(theta)*thetap ]  ...
+                ) ...
+                ];
+        end % eval_phiqp_q
+        
         % Computes the hypermatrix $\frac{\partial R}{\partial q}$, with Rq(:,:,k) the partial derivative of R(q) wrt q(k)
         function Rq = jacob_Rq(me,q,R)
             error('to do');
@@ -136,9 +201,16 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
         function Q = eval_forces(me,q,qp)
             Q_var = zeros(me.dep_coords_count,1);
             Q_var(3) = -me.C*qp(3);
-            Q = me.Qg+Q_var;
+            Q = me.Qg+Q_var+me.Qconst+me.Qm;
         end % eval_forces
-
+        
+         % sets the value of the constant forces to be applied during all the
+        % simulation
+        function [estim_wQcnst] = set_Qconst(me, Q_constant)
+            estim_wQcnst = me; 
+            estim_wQcnst.Qconst = Q_constant;
+        end % end of set_Qconst
+        
         % Evaluates the stiffness & damping matrices of the system:
         function [K, C] = eval_KC(me, q,dq)
             K = zeros(me.dep_coords_count,me.dep_coords_count);
@@ -156,34 +228,38 @@ classdef mbeMechModelPendulumBase < mbeMechModelBase
             ini_pos_error = 0;
             grav_error = 0;
             damping_coef_error = 0;
-
-            switch error_def.error_type
-                case 0
-                    ini_vel_error = 0;
-                    ini_pos_error = 0;
-                    grav_error = 0;
-                    damping_coef_error = 0;
-                % 1: Gravity + initial pos error:
-                case 1
-                    grav_error = 1*error_def.error_scale;
-                    ini_pos_error = error_def.error_scale * pi/16;
-                % 2: Initial pos error
-                case 2
-                    ini_pos_error = error_def.error_scale * pi/16;
-                % 3: Initial vel error
-                case 3
-                    ini_vel_error = 10 * error_def.error_scale;
-                % 4: damping (C) param (=0)
-                case 4 
-                    damping_coef_error = -1*me.C * error_def.error_scale;
-                % 5: damping (C) param (=10)
-                case 5
-                    ini_vel_error = 0;
-                    ini_pos_error = 0;
-                    grav_error = 0;
-                    damping_coef_error = 10 * error_def.error_scale;
-                otherwise
-                    error('Unhandled value!');
+            for i = 1:length(error_def.error_type)
+                switch error_def.error_type(i)
+                    case 0
+                        ini_vel_error = 0;
+                        ini_pos_error = 0;
+                        grav_error = 0;
+                        damping_coef_error = 0;
+                        % 1: Gravity + initial pos error:
+                    case 1
+                        grav_error = 1*error_def.error_scale;
+                        %                     ini_pos_error = error_def.error_scale * pi/16;
+                        % 2: Initial pos error
+                    case 2
+                        ini_pos_error = error_def.error_scale * pi/16;
+                        % 3: Initial vel error
+                    case 3
+                        ini_vel_error = 10 * error_def.error_scale;
+                        % 4: damping (C) param (=0)
+                    case 4
+                        damping_coef_error = -1*me.C * error_def.error_scale;
+                        % 5: damping (C) param (=10)
+                    case 5
+                        damping_coef_error = 10 * error_def.error_scale;
+                    case 6
+                        bad_model.bar_lengths(1) = bad_model.bar_lengths(1)*(100+error_def.error_scale)/100; % Lenght error in bar 1 (error_scale are 1 % of lenght error)
+                    case 7
+                        bad_model.mA1 = bad_model.mA1*(100+10*error_def.error_scale)/100;% Mass error in bar 1(error_scale usits are 10% of mass error)
+                    case 8
+                        bad_model = bad_model.set_Qconst(bad_model.Qconst*0);
+                    otherwise
+                        error('Unhandled value!');
+                end
             end
             bad_model.g = bad_model.g+grav_error; % gravity error
             bad_model.zp_init = bad_model.zp_init+ini_vel_error; % initial velocity error

@@ -43,9 +43,11 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         indep_idxs = 5;
     end
     % (Abstract) Read-only properties of the model
-    properties(GetAccess=public,SetAccess=public)
+    properties(GetAccess=public,SetAccess=protected)
         % Initial, approximate position (dep coords) vector
         q_init_approx=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
+        % Generalized vector of constant forces.
+        Qconst=zeros(mbeMechModelFourBarsBase.dep_coords_count,1);
         
     end
     
@@ -54,13 +56,12 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         % Initial velocity for independent coords
         zp_init=[0];
         % Global mass matrix
-        M;
-        
+        M = [0];
         % Fixed point coords:
         xA,yA,xB,yB, fixed_points;
         
         % Gravity:
-        g = -10;
+        g = -9.81;
         
         % lengths:
         bar_lengths; 
@@ -70,6 +71,9 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         
         % Force vector (gravity forces only):
         Qg;
+        % Force vector: generalized forces vector calculated from estimated
+        % input forces
+        Qm = zeros(mbeMechModelFourBarsBase.dep_coords_count,1); 
         
         % damping coefficient (TODO: At which joint??)
         C = 0;
@@ -115,24 +119,89 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
                         ) ...                            
                     ];
         end % jacob_phi_q()
+        
+        % Computes the Jacobian $\Phi_{qq} (it is a hypermatrix)$
+        function phiqq = eval_phi_q_q(me,q)
+            %             x1 = q(1); y1 = q(2); x2 = q(3); y2 = q(4);
+            theta = q(5);
+            LA1 = me.bar_lengths(1);
+            phiqq = zeros(4,5,5);
+            phiqq(:,:,1) = [...
+                2, 0,  0,  0,  0;
+                2,  0,  -2, 0,  0;
+                0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0;...
+                ];
+            phiqq(:,:,2) =  [...
+                0,  2, 0,  0,  0;
+                0,  2,  0,  -2, 0;
+                0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0;...
+                ];
+            phiqq(:,:,3) =  [...
+                0,  0,  0,  0,  0;
+                -2,  0,  2,  0,  0;
+                0,  0,  2,  0,  0;
+                0,  0,  0,  0,  0;...
+                ];
+            phiqq(:,:,4) =  [...
+                0,  0,  0,  0,  0;
+                0,  -2,  0,  2,  0;
+                0,  0,  0,  2,  0;
+                0,  0,  0,  0,  0;...
+                ];
+            phiqq(:,:,5) =  [...
+                0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0;
+                0,  0,  0,  0,  0;
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0,             0,             0, LA1*sin(theta)], ...
+                [0,             0,             0,             0,  LA1*cos(theta)] ...
+                ) ...
+                ];
+            
+        end % eval_phi_q_q
 
-        % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
-        function phiqpqp = jacob_phiqp_times_qp(me,q,qp)
+        % Computes the time derivative of the Jacobian $\dot{\Phi_q}$
+        function phiqp = eval_phiqp(me,q,qp)
             %x1 = q(1) ;y1 = q(2);x2 = q(3);y2 = q(4);
             theta = q(5);
             x1p = qp(1) ;y1p = qp(2);x2p = qp(3);y2p = qp(4);thetap = qp(5);
             LA1 = me.bar_lengths(1);
-
-            dotphiq = [...
-                      2*x1p,        2*y1p,            0,             0,              0;
+            
+            phiqp = [...
+                2*x1p,        2*y1p,            0,             0,              0;
                 2*(x1p-x2p),  2*(y1p-y2p), -2*(x1p-x2p),  -2*(y1p-y2p),              0;
-                          0,             0,       2*x2p,         2*y2p,              0;
-                    mbe_iff(abs(sin(theta)) < 0.7,... 
-                          [0,             0,           0,             0, LA1*sin(theta)*thetap ], ...
-                          [0,             0,           0,             0, LA1*cos(theta)*thetap ]  ...
-                          ) ...
-                       ];
-
+                0,             0,       2*x2p,         2*y2p,              0;
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0,           0,             0, LA1*sin(theta)*thetap ], ...
+                [0,             0,           0,             0, LA1*cos(theta)*thetap ]  ...
+                ) ...
+                ];
+        end % eval_phiqp
+        
+        % Computes hypermatrix  $\dot{\Phi_q}_q$
+        function phiqp_q = eval_phiqp_q(me,q,qp)
+            %x1 = q(1) ;y1 = q(2);x2 = q(3);y2 = q(4);
+            theta = q(5);
+            %x1p = qp(1) ;y1p = qp(2);x2p = qp(3);y2p = qp(4);
+            thetap = qp(5);
+            LA1 = me.bar_lengths(1);
+            phiqp_q = zeros(4,5,5);
+            phiqp_q(:,:,5) = [...
+                0, 0, 0, 0, 0;...
+                0, 0, 0, 0, 0;...
+                0, 0, 0, 0, 0;...
+                mbe_iff(abs(sin(theta)) < 0.7,...
+                [0,             0,           0,             0, LA1*cos(theta)*thetap ], ...
+                [0,             0,           0,             0, -LA1*sin(theta)*thetap ]  ...
+                ) ...
+                ];
+        end % eval_phiqp_q
+        
+        % Computes the Jacobian $\dot{\Phi_q} \dot{q}$
+        function phiqpqp = jacob_phiqp_times_qp(me,q,qp)
+            dotphiq = eval_phiqp(me,q,qp);
             phiqpqp = dotphiq * qp;
         end % jacob_phiqp_times_qp
         
@@ -177,8 +246,15 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         function Q = eval_forces(me,q,qp)
             Q_var = zeros(me.dep_coords_count,1);
             Q_var(5) = -me.C*qp(5);
-            Q = me.Qg+Q_var;
+            Q = me.Qg+Q_var+me.Qconst+me.Qm;
+%             Q = zeros(me.dep_coords_count,1)+me.Qconst+me.Qm;
         end % eval_forces
+        % sets the value of the constant forces to be applied during all the
+        % simulation
+        function [estim_wQcnst] = set_Qconst(me, Q_constant)
+            estim_wQcnst = me; 
+            estim_wQcnst.Qconst = Q_constant;
+        end % end of set_Qconst
 
         % Evaluates the stiffness & damping matrices of the system:
         function [K, C] = eval_KC(me, q,dq)
@@ -226,6 +302,8 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
                         bad_model.bar_lengths(1) = bad_model.bar_lengths(1)*(100+error_def.error_scale)/100; % Lenght error in bar 1 (error_scale are 1 % of lenght error)
                     case 7 
                         bad_model.mA1 = bad_model.mA1*(100+10*error_def.error_scale)/100;% Mass error in bar 1(error_scale usits are 10% of mass error)
+                    case 8
+                        bad_model = bad_model.set_Qconst(bad_model.Qconst*0);
                     otherwise
                         error('Unhandled value!');
                 end
@@ -248,7 +326,7 @@ classdef mbeMechModelFourBarsBase < mbeMechModelBase
         function [] = plot_model_skeleton(me, q, color_code, do_fit)
             plot([me.fixed_points(1),q(1),q(3),me.fixed_points(3)], ...
                  [me.fixed_points(2),q(2),q(4),me.fixed_points(4)] ,color_code,...
-                 'LineWidth',2);
+                 'LineWidth',5, 'MarkerSize',35);
             if (do_fit)
                 axis equal;
                 xlim ([me.fixed_points(1)-1.2*me.bar_lengths(1),1.1*me.fixed_points(3)]);

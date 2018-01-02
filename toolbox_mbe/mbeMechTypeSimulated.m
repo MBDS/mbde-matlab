@@ -135,7 +135,6 @@ classdef mbeMechTypeSimulated < mbeMechTypeBase
                 obs = obs + obs_stds.*randn(length(obs),1);           
             else
                 obs=[]; % no observations at this time
-                % The random number generation is invoqued anyway to keep the same sequence of pseudorandom numbers
                 randn(length(estim.mech_phys_model.installed_sensors),1);
             end
         end % of get_current_observations()

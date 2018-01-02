@@ -47,7 +47,7 @@ classdef mbeMechModelFiveBars1 < mbeMechModelFiveBarsBase
             me.q_init_approx = [x1, y1, x2, y2, x3, y3, theta1, theta2]'; % Initial approximated position
             me.zp_init = [0, 0]'; % Initial DOF velocity
             % gravity
-            me.g = -10;
+            me.g = -9.81;
 
             % Multibody model parameters
             % fixed points:

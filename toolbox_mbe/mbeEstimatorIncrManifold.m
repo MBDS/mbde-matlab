@@ -88,7 +88,7 @@ classdef mbeEstimatorIncrManifold < mbeEstimatorFilterBase
             
             
             % Sensors noise model:
-            sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
+            sensors_stds = me.sensors_std_magnification4filter .* me.bad_mech_phys_model.sensors_std_noise();
             me.CovMeasurementNoise = diag(sensors_stds.^2);
         end
         
