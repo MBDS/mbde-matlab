@@ -21,6 +21,7 @@ Citation
 This toolbox was introduced in: 
   * E. Sanjurjo, J.L. Blanco, J.L. Torres, M.A. Naya, "Testing the efficiency and accuracy of multibody-based state observers", ECCOMAS Thematic Conference on Multibody Dynamics, 2015. [[PDF](http://ingmec.ual.es/~jlblanco/papers/sanjurjo2015eccomas_mbs_observers.pdf)]
   * E. Sanjurjo, M.Á. Naya, J.L. Blanco-Claraco, J.L. Torres-Moreno, A. Giménez-Fernández. Accuracy and efficiency comparison of various nonlinear Kalman filters applied to multibody models. Nonlinear Dyn (2017). doi:10.1007/s11071-017-3354-z [[LINK](http://rdcu.be/oY1f)]
+  * E. Sanjurjo, D. Dopico, A. Luaces, M.Á. Naya. State and force observers based on multibody models and the indirect Kalman filter. Mechanical Systems and Signal Processing. doi:10.1016/j.ymssp.2017.12.041 [[LINK](https://www.sciencedirect.com/science/article/pii/S0888327017306787)]
 
 Installation
 --------------
