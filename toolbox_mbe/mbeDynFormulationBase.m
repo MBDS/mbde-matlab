@@ -249,7 +249,7 @@ classdef (Abstract) mbeDynFormulationBase < handle
                 plot (1:long, s.resid_pos, 'r')
                 plot (1:long, s.resid_vel, 'b')
                 plot (1:long, s.resid_acc, 'g')
-                legend ('Position', 'Velocity', 'Acceleration')
+                legend ({'Position', 'Velocity', 'Acceleration'})
                 title('Constraints fulfilment')
             hold off            
         end % plot_perf_stats        
