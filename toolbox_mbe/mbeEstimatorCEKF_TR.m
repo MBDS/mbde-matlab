@@ -58,11 +58,8 @@ classdef mbeEstimatorCEKF_TR < mbeEstimatorFilterBase
                 ones(1,me.lenZ)*me.transitionNoise_Zpp]);
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
-%             if (me.mechanism_type.multirate_sensor_period)
-%                 me.CovMeasurementNoise = diag(sensors_stds.^2)*me.mechanism_type.multirate_sensor_period;
-%             else
-                me.CovMeasurementNoise = diag(sensors_stds.^2)*me.dt;
-%             end
+            me.CovMeasurementNoise = diag(sensors_stds.^2);
+
             
         end
         

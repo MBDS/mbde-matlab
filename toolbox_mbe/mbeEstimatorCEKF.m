@@ -24,7 +24,7 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
         % sensor & its linearization point:
         eval_sensors_at_X_less = 0; % 1
         
-        tol_dyn = 1e-10;
+        tol_dyn = 1e-5;
         iter_max = 1000;
     end
     
@@ -58,11 +58,8 @@ classdef mbeEstimatorCEKF < mbeEstimatorFilterBase
                 ones(1,me.lenZ)*me.transitionNoise_Zpp]);
             % Sensors noise model:
             sensors_stds = me.sensors_std_magnification4filter * me.bad_mech_phys_model.sensors_std_noise();
-%             if (me.mechanism_type.multirate_sensor_period)
-%                 me.CovMeasurementNoise = diag(sensors_stds.^2)*me.mechanism_type.multirate_sensor_period;
-%             else
-                me.CovMeasurementNoise = diag(sensors_stds.^2)*me.dt;
-%             end
+            me.CovMeasurementNoise = diag(sensors_stds.^2);
+
             
         end
         

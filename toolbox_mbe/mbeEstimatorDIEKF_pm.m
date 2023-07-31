@@ -28,7 +28,7 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
     
     % Private vars
     properties(Access=private)
-        CovPlantNoise; CovMeasurementNoise;
+        CovPlantNoise; CovMeasurementNoise; CovPlantNoise_seed; 
         F; %G; % Transition matrices
         MAX_INCR_X = 1e-8; % Should it be lower? 1e-10?
         MAX_ERR = 1e-3; % Not always achievable with this method
@@ -36,7 +36,8 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
         MAX_IEKF_ITERS = 2000;
         lenq;
         FULL_COV_SENSORS;
-        PM_VAR  = 1e-3;   % Perfect measurement variance
+%         PM_VAR  = 1e-3;   % Perfect measurement variance
+        PM_VAR  = 1e-3;
         
     end
     
@@ -65,17 +66,47 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                 [me.initVar_Z*ones(1,me.lenq),...
                 me.initVar_Zp*ones(1,me.lenq)]);
             
+%             ContinuousCovPlantNoise = diag([...
+%                 ones(1,me.lenq)*me.transitionNoise_Zp, ...
+%                 ones(1,me.lenq)*me.transitionNoise_Zpp]);
+%             ContinouosF = [Oz, Iz; 
+%                             Oz, Oz];
+%             M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
+%                        O2z, ContinouosF' ];
+%             N = expm(M);
+%             discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
+% %             me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+            Iz = eye(me.lenZ);
+            Oz = zeros(me.lenZ);
+            lenX = 2*me.lenZ;
+            O2z = zeros(lenX);
+            
+                        
+%           Discrete plant noise covariance matrix from its continouos counterpart (Van Loan's method)
             ContinuousCovPlantNoise = diag([...
-                ones(1,me.lenq)*me.transitionNoise_Zp, ...
-                ones(1,me.lenq)*me.transitionNoise_Zpp]);
+                ones(1,me.lenZ)*me.transitionNoise_Zp, ...
+                ones(1,me.lenZ)*me.transitionNoise_Zpp]);
             ContinouosF = [Oz, Iz; 
                             Oz, Oz];
             M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
                        O2z, ContinouosF' ];
             N = expm(M);
             discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
-            me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
+            me.CovPlantNoise_seed = discreteF*N(1:lenX, lenX+1:2*lenX);
             
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+%             me.CovPlantNoise = diag([...
+%                 ones(1,me.lenq)*me.transitionNoise_Z*me.dt, ...
+%                 ones(1,me.lenq)*me.transitionNoise_Zp*me.dt]);
             
             % These should be constant for all iterations, so eval them once:
             me.F = [eye(me.lenq) eye(me.lenq)*me.dt;zeros(me.lenq) eye(me.lenq)];
@@ -90,7 +121,25 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
         function [] = run_filter_iter(me, obs)
 
             % time update. 
-            P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
+            matR = mbeKinematicsSolver.calc_R_matrix(me.bad_mech_phys_model, me.q);
+            covPN11= 1e0*eye(me.lenq);
+            covPN22 = covPN11;
+            covPN12 = covPN11*0;
+            for i = 1: me.lenZ
+                covPN11(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i,i);
+                covPN11(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i,i);
+                covPN22(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i+me.lenZ,i+me.lenZ);
+                covPN22(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i+me.lenZ,i+me.lenZ);
+                
+%                 covPN12(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i,i+me.lenZ);
+%                 covPN12(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i,i+me.lenZ);
+%                 covPN12(me.iidxs(i),me.iidxs(i)) = me.CovPlantNoise_seed(i,i+me.lenZ);
+            end
+            
+            covPN12 = covPN12*0;
+            CovPN = [covPN11, covPN12;
+                    covPN12,covPN22];
+            P_minus = me.F*(me.P)*me.F' + CovPN;
             % Transition model (Euler integration)
             X_minus=[...
                 me.q + me.dt*me.qp; ...
@@ -99,6 +148,7 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
            
            
             err = 1; 
+            incr_X_plus = 1; 
             IEKF_ITERS = 0;
             X_plus = X_minus;
 %             while (incr_X_plus>me.MAX_INCR_X && IEKF_ITERS < me.MAX_IEKF_ITERS)
@@ -142,7 +192,8 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
                 err = norm([phi;phiq*me.qp]);
                 locInnovation = full_obs-obs_predict;
                 K_i = P_minus*H'/(H*P_minus*H'+COV_SENSORS);
-                X_plus_new = X_minus+K_i*(locInnovation-H*(X_minus-X_plus));
+                X_plus_new = X_minus+K_i*(locInnovation-H*(X_minus-X_plus)); %% This is how Dan Simon says
+%                 X_plus_new = X_plus+K_i*(locInnovation); %%% This is a tests
                 incr_X_plus = norm(X_plus-X_plus_new);
                 X_plus = X_plus_new;
             end
@@ -152,7 +203,7 @@ classdef mbeEstimatorDIEKF_pm < mbeEstimatorFilterBase
             if(norm(phi)>1e-3)
                 warning('convergence not achieved')
                 phi
-                pause();
+%                 pause();
             end
             
             % Recover KF -> MBS coordinates

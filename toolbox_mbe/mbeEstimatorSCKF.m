@@ -18,28 +18,21 @@ classdef mbeEstimatorSCKF < mbeEstimatorFilterBase
 	%     along with MBDE-MATLAB.  If not, see <http://www.gnu.org/licenses/>.
 	% -----------------------------------------------------------------------------
 
-    properties
-        % (Is this worth the computational cost? Probably not, but this is how EKF works in theory) 
-        % Reflect the new X_less into q,qp,qpp for accurately simulate the
-        % sensor & its linearization point:
-        eval_sensors_at_X_less = 1;
-        dataset;
-    end
     
     % Private vars
     properties(Access=private)
-        CovPlantNoise; CovMeasurementNoise;
+        CovPlantNoise; CovMeasurementNoise; CovPlantNoise_seed; 
         F; %G; % Transition matrices
         MAX_ERR = 1e-3; % Error in constraints
 %         INCR_X_PLUS = 10*MAX_INCR_X;
-        MAX_ITERS = 200;
+        MAX_ITERS = 5;
         lenq;
         Iq; % Identity matrix (size of q)
         Ix; % Identity matrix (size of X)
         Oq; % Null matrix
 
         alpha = 0.1; % this parameter have influence over the fictious noise of constraints sensor.
-        beta = 1; %5; % as this parameter is bigger, the fictious noise of the sensors decreases faster.
+        beta =10; %5; % as this parameter is bigger, the fictious noise of the sensors decreases faster.
 %         PM_VAR  = 1e-6;   % Perfect measurement precision
         
     end
@@ -90,20 +83,38 @@ classdef mbeEstimatorSCKF < mbeEstimatorFilterBase
 %                 ones(1,me.lenq)*me.transitionNoise_Z*me.dt, ...
 %                 ones(1,me.lenq)*me.transitionNoise_Zp*me.dt]);
 
+% % % % %             ContinuousCovPlantNoise = diag([...
+% % % % %                 ones(1,me.lenq)*me.transitionNoise_Zp, ...
+% % % % %                 ones(1,me.lenq)*me.transitionNoise_Zpp]);
+% % % % %             factor = 1;
+% % % % %              ContinuousCovPlantNoise([me.iidxs, me.iidxs+me.lenq],[me.iidxs, me.iidxs+me.lenq])= factor*ContinuousCovPlantNoise([me.iidxs, me.iidxs+me.lenq],[me.iidxs, me.iidxs+me.lenq]);
+% % % % %              ContinuousCovPlantNoise= ContinuousCovPlantNoise/factor;
+% % % % %             ContinouosF = [me.Oq, me.Iq; 
+% % % % %                            me.Oq, me.Oq];
+% % % % %             M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
+% % % % %                        Ox, ContinouosF' ];
+% % % % %             N = expm(M);
+% % % % %             discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
+% % % % %             me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
+% % % % %             
+
+            Iz = eye(me.lenZ);
+            Oz = zeros(me.lenZ);
+            lenX = 2*me.lenZ;
+            O2z = zeros(lenX);
+            
+                        
+%           Discrete plant noise covariance matrix from its continouos counterpart (Van Loan's method)
             ContinuousCovPlantNoise = diag([...
-                ones(1,me.lenq)*me.transitionNoise_Zp, ...
-                ones(1,me.lenq)*me.transitionNoise_Zpp]);
-            factor = 1;
-             ContinuousCovPlantNoise([me.iidxs, me.iidxs+me.lenq],[me.iidxs, me.iidxs+me.lenq])= factor*ContinuousCovPlantNoise([me.iidxs, me.iidxs+me.lenq],[me.iidxs, me.iidxs+me.lenq]);
-             ContinuousCovPlantNoise= ContinuousCovPlantNoise/factor;
-            ContinouosF = [me.Oq, me.Iq; 
-                           me.Oq, me.Oq];
+                ones(1,me.lenZ)*me.transitionNoise_Zp, ...
+                ones(1,me.lenZ)*me.transitionNoise_Zpp]);
+            ContinouosF = [Oz, Iz; 
+                            Oz, Oz];
             M = me.dt*[-ContinouosF, ContinuousCovPlantNoise;
-                       Ox, ContinouosF' ];
+                       O2z, ContinouosF' ];
             N = expm(M);
             discreteF = N(lenX+1:2*lenX, lenX+1:2*lenX)';
-            me.CovPlantNoise = discreteF*N(1:lenX, lenX+1:2*lenX);
-            
+            me.CovPlantNoise_seed = discreteF*N(1:lenX, lenX+1:2*lenX);
             
             % These should be constant for all iterations, so eval them once:
             me.F = [eye(me.lenq) eye(me.lenq)*me.dt;zeros(me.lenq) eye(me.lenq)];
@@ -117,10 +128,29 @@ classdef mbeEstimatorSCKF < mbeEstimatorFilterBase
         % Run one timestep of the estimator (see docs in mbeEstimatorFilterBase)
         function [] = run_filter_iter(me, obs)
             % Transition model (Euler integration)
+            matR = mbeKinematicsSolver.calc_R_matrix(me.bad_mech_phys_model, me.q);
+            covPN11= 1e0*eye(me.lenq);
+            covPN22 = covPN11;
+            covPN12 = covPN11*0;
+            for i = 1: me.lenZ
+                covPN11(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i,i);
+                covPN11(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i,i);
+                covPN22(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i+me.lenZ,i+me.lenZ);
+                covPN22(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i+me.lenZ,i+me.lenZ);
+                
+%                 covPN12(:,me.iidxs(i)) = matR(:,i)*me.CovPlantNoise_seed(i,i+me.lenZ);
+%                 covPN12(me.iidxs(i),:) = matR(:,i)'*me.CovPlantNoise_seed(i,i+me.lenZ);
+%                 covPN12(me.iidxs(i),me.iidxs(i)) = me.CovPlantNoise_seed(i,i+me.lenZ);
+            end
+            
+            covPN12 = covPN12*0;
+            CovPN = [covPN11, covPN12;
+                    covPN12,covPN22];
+            
             X_minus=[...
                 me.q + me.dt*me.qp; ...
                 me.qp + me.qpp*me.dt ];
-            P_minus = me.F*(me.P)*me.F' + me.CovPlantNoise;
+            P_minus = me.F*(me.P)*me.F' + CovPN;
             % Correction from sensors measurements
             if (~isempty(obs))
                 % Eval observation Jacobian wrt the indep. coordinates:
@@ -192,10 +222,11 @@ classdef mbeEstimatorSCKF < mbeEstimatorFilterBase
                 phi = me.bad_mech_phys_model.phi(me.q);
                 PHI = [phi;
                        phiq*me.qp];
+                   
                 err= norm(PHI);
             end
             me.P = P_plus;
-                
+            
         end % run_filter_iter
         
     end
