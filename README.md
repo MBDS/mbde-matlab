@@ -34,5 +34,5 @@ Demos
 
 Classes diagram
 ----------
-Classes diagram in PNG format. Download the PDF version here.
+Classes diagram in PNG format. Download the PDF version [`here`](https://github.com/MBDS/mbde-matlab/blob/e254f6c6eb4eb22bc8dea3a2d486e4c08c6dafa9/toolbox_mbe/classes_diagram.pdf) 
 ![classes_diagram](https://github.com/MBDS/mbde-matlab/assets/3897942/841e5709-f4e1-437b-a7f3-f57d34c9f9d0)
