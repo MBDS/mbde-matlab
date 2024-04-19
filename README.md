@@ -32,3 +32,7 @@ Demos
   * [`demo_dynamic_simulation.m`](demo_dynamic_simulation.m): Runs a dynamic simulation for a given mechanism.
   * [`demo_run_observer_offline.m`](demo_run_observer_offline.m): Runs an offline estimation of a given mechanism, with a given set of sensors and using the especific estimation method. 
 
+Classes diagram
+----------
+Classes diagram in PNG format. Download the PDF version here.
+![classes_diagram](https://github.com/MBDS/mbde-matlab/assets/3897942/841e5709-f4e1-437b-a7f3-f57d34c9f9d0)
